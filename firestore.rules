@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // restaurants：誰でも閲覧可。書き込みは「ログインしている人」までは今は許可。
+    // ※これは今の「Phase 1〜暫定」のルールです。
+    //   Phase 2で users コレクションのroleを見て
+    //   「編集者・オーナーだけ書き込み可」に厳しくします。
+    //   このファイルはFirebaseコンソールの「Firestore Database → ルール」に
+    //   貼り付けて公開（Publish）してください。
+    match /restaurants/{restaurantId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // users：本人だけ自分のドキュメントを読み書きできる（role列は将来Cloud Functionで保護）
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // それ以外のコレクションは今のところ非公開
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

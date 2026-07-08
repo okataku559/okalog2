@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかログ｜大阪キタ・ミナミの「本当に行ってよかった店」</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#1F2421;        /* 暖簾のような深い墨色 */
+    --paper:#FBF7EE;      /* 和紙のような紙色 */
+    --paper-dim:#F1EBDC;
+    --shu:#B23A22;        /* 朱色（アクセント） */
+    --shu-dark:#8C2C19;
+    --kin:#B8902E;        /* 金（評価の星） */
+    --line:#DDD3BE;
+  }
+  html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
+  .font-display{ font-family:"Shippori Mincho",serif; }
+  .curation-badge{
+    font-family:"Shippori Mincho",serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip{ transition:background-color .15s, color .15s, border-color .15s; }
+  .chip[data-active="true"]{ background:var(--shu); color:#fff; border-color:var(--shu); }
+  .store-card{ transition: box-shadow .15s, transform .15s; }
+  .store-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.10); transform:translateY(-1px); }
+  .store-card[data-selected="true"]{ outline:2px solid var(--shu); outline-offset:-2px; }
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+  @media (prefers-reduced-motion: reduce){ .store-card{ transition:none; } }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ヘッダー：暖簾風の帯 -->
+  <header class="bg-[var(--ink)] text-[var(--paper)]">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-baseline gap-3">
+      <h1 class="font-display text-2xl md:text-3xl font-extrabold tracking-wide">おかログ</h1>
+      <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">大阪キタ・ミナミ、本当に行ってよかった店だけ。</p>
+    </div>
+  </header>
+
+  <!-- 検索・絞り込みバー -->
+  <section class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 py-3 space-y-3">
+      <div class="flex flex-wrap gap-2 items-center">
+        <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-city" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
+               class="flex-1 min-w-[160px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
+        <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
+      </div>
+      <div id="f-area" class="flex flex-wrap gap-1.5"></div>
+      <div id="f-genre" class="flex flex-wrap gap-1.5"></div>
+      <div id="f-scene" class="flex flex-wrap gap-1.5"></div>
+    </div>
+  </section>
+
+  <!-- メイン：2ペイン（PC）/ 1カラム（モバイル） -->
+  <main class="flex-1 max-w-7xl w-full mx-auto md:flex md:gap-4 px-4 py-4">
+    <section class="md:w-[46%] md:overflow-y-auto md:max-h-[calc(100vh-140px)]">
+      <p id="result-count" class="text-xs text-[var(--ink)]/60 mb-2 px-1"></p>
+      <div id="list" class="flex flex-col gap-3"></div>
+      <div id="empty-state" class="hidden text-center py-16 text-sm text-[var(--ink)]/60">
+        条件に合うお店が見つかりませんでした。<br>絞り込み条件を減らして、もう一度お試しください。
+      </div>
+    </section>
+
+    <section id="map-pane" class="md:w-[54%] mt-4 md:mt-0">
+      <div id="map" class="w-full h-[320px] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { db } from "./firebase-init.js";
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { GENRES, SCENES, AREA_TREE } from "./constants.js";
+    import { GOOGLE_MAPS_API_KEY } from "./firebase-init.js";
+
+    // ---- 状態（今かかっている絞り込み条件） ----
+    const state = {
+      pref: "", city: "", areas: new Set(), genres: new Set(), scenes: new Set(), keyword: "",
+    };
+    let allStores = [];      // Firestoreから取得した全店舗データ
+    let markers = {};        // id -> google.maps.Marker
+    let map, infoWindow;
+
+    // ---- ブラウザバック対策：離脱前に検索条件・スクロール位置を保存 ----
+    const STORAGE_KEY = "okalog_search_state_v1";
+    function saveState(){
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        pref: state.pref, city: state.city,
+        areas: [...state.areas], genres: [...state.genres], scenes: [...state.scenes],
+        keyword: state.keyword, scrollY: window.scrollY,
+      }));
+    }
+    function restoreState(){
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      try{
+        const s = JSON.parse(raw);
+        state.pref = s.pref || ""; state.city = s.city || "";
+        state.areas = new Set(s.areas||[]); state.genres = new Set(s.genres||[]); state.scenes = new Set(s.scenes||[]);
+        state.keyword = s.keyword || "";
+        requestAnimationFrame(()=> window.scrollTo(0, s.scrollY||0));
+      }catch(e){ /* 壊れたデータは無視 */ }
+    }
+    window.addEventListener("pagehide", saveState);
+
+    // ---- フィルターUIの初期化 ----
+    function fillPrefSelect(){
+      const sel = document.getElementById("f-pref");
+      sel.innerHTML = `<option value="">都道府県（すべて）</option>` +
+        Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
+      sel.value = state.pref;
+    }
+    function fillCitySelect(){
+      const sel = document.getElementById("f-city");
+      const cities = state.pref ? Object.keys(AREA_TREE[state.pref]) : [];
+      sel.innerHTML = `<option value="">市区町村（すべて）</option>` +
+        cities.map(c=>`<option value="${c}">${c}</option>`).join("");
+      sel.value = state.city;
+      sel.disabled = cities.length === 0;
+    }
+    function currentAreaOptions(){
+      if(state.pref && state.city) return AREA_TREE[state.pref][state.city];
+      // 都道府県・市区町村が未選択のときは、全エリアをまとめて出す
+      return Object.values(AREA_TREE).flatMap(cityMap => Object.values(cityMap).flat());
+    }
+    function renderChipGroup(containerId, options, selectedSet, onToggle){
+      const box = document.getElementById(containerId);
+      box.innerHTML = "";
+      options.forEach(opt=>{
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.textContent = opt;
+        chip.dataset.active = selectedSet.has(opt);
+        chip.className = "chip text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white";
+        chip.addEventListener("click", ()=>{
+          selectedSet.has(opt) ? selectedSet.delete(opt) : selectedSet.add(opt);
+          chip.dataset.active = selectedSet.has(opt);
+          applyFilters();
+        });
+        box.appendChild(chip);
+      });
+    }
+    function renderFilterBar(){
+      fillPrefSelect(); fillCitySelect();
+      renderChipGroup("f-area", currentAreaOptions(), state.areas);
+      renderChipGroup("f-genre", GENRES, state.genres);
+      renderChipGroup("f-scene", SCENES, state.scenes);
+      document.getElementById("f-keyword").value = state.keyword;
+    }
+
+    document.getElementById("f-pref").addEventListener("change", e=>{
+      state.pref = e.target.value; state.city = ""; state.areas.clear();
+      renderFilterBar(); applyFilters();
+    });
+    document.getElementById("f-city").addEventListener("change", e=>{
+      state.city = e.target.value; state.areas.clear();
+      renderFilterBar(); applyFilters();
+    });
+    document.getElementById("f-keyword").addEventListener("input", e=>{
+      state.keyword = e.target.value; applyFilters();
+    });
+    document.getElementById("btn-clear").addEventListener("click", ()=>{
+      state.pref=""; state.city=""; state.areas.clear(); state.genres.clear(); state.scenes.clear(); state.keyword="";
+      renderFilterBar(); applyFilters();
+    });
+
+    // ---- 絞り込み実行 ----
+    function applyFilters(){
+      const kw = state.keyword.trim().toLowerCase();
+      const filtered = allStores.filter(s=>{
+        if(state.pref && s.prefecture !== state.pref) return false;
+        if(state.city && s.city !== state.city) return false;
+        if(state.areas.size && !state.areas.has(s.area)) return false;
+        if(state.genres.size && !state.genres.has(s.genre)) return false;
+        if(state.scenes.size && !(s.scenes||[]).some(sc=>state.scenes.has(sc))) return false;
+        if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
+        return true;
+      });
+      renderList(filtered);
+      renderMarkers(filtered);
+    }
+
+    // ---- 一覧表示 ----
+    function starString(n){ return "★".repeat(n) + "☆".repeat(5-n); }
+    function renderList(items){
+      const list = document.getElementById("list");
+      const empty = document.getElementById("empty-state");
+      document.getElementById("result-count").textContent = `${items.length}件のお店`;
+      list.innerHTML = "";
+      empty.classList.toggle("hidden", items.length>0);
+      items.forEach((s, i)=>{
+        const card = document.createElement("article");
+        card.className = "store-card bg-white border border-[var(--line)] rounded-xl p-3 cursor-pointer";
+        card.dataset.id = s.id;
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <span class="curation-badge text-[var(--shu)] text-lg font-bold shrink-0">No.${String(s.curationNo ?? (i+1)).padStart(3,"0")}</span>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-base truncate">${s.name}</h3>
+              <p class="text-xs text-[var(--ink)]/60">${s.area} ／ ${s.genre}</p>
+              <p class="text-[var(--kin)] text-sm" aria-label="満足度${s.taste}">${starString(s.taste||0)}</p>
+              <div class="flex flex-wrap gap-1 mt-1">
+                ${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}
+              </div>
+            </div>
+          </div>`;
+        card.addEventListener("click", ()=> focusStore(s));
+        list.appendChild(card);
+      });
+    }
+
+    // ---- カード選択 → 地図連動（SC-02） ----
+    function focusStore(s){
+      document.querySelectorAll(".store-card").forEach(el=> el.dataset.selected = (el.dataset.id===s.id));
+      if(s.lat && s.lng && map){
+        map.panTo({lat:s.lat, lng:s.lng});
+        map.setZoom(16);
+        const marker = markers[s.id];
+        if(marker){ 
+          infoWindow.setContent(`<strong>${s.name}</strong><br>${s.area}／${s.genre}`);
+          infoWindow.open(map, marker);
+        }
+      }
+      // モバイルでは地図まで自動スクロール
+      if(window.innerWidth < 768){
+        document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
+      }
+      // 外部の予約サイト等へ行く前に状態を保存しておく（ブラウザバック対策）
+      saveState();
+    }
+
+    // ---- Google Maps ----
+    window.initMap = function(){
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: {lat:34.6937, lng:135.5023}, // 大阪駅付近を初期表示
+        zoom: 13,
+        mapId: "OKALOG_MAP",
+      });
+      infoWindow = new google.maps.InfoWindow();
+      loadStoresAndStart();
+    };
+    function renderMarkers(items){
+      Object.values(markers).forEach(m=> m.setMap(null));
+      markers = {};
+      items.forEach(s=>{
+        if(!s.lat || !s.lng) return; // 緯度経度が未取得の店舗はピン表示をスキップ
+        const marker = new google.maps.Marker({ position:{lat:s.lat, lng:s.lng}, map, title:s.name });
+        marker.addListener("click", ()=> focusStore(s));
+        markers[s.id] = marker;
+      });
+    }
+
+    // ---- Firestoreからデータ取得 ----
+    async function loadStoresAndStart(){
+      const snap = await getDocs(collection(db, "restaurants"));
+      allStores = snap.docs.map(d=> ({id:d.id, ...d.data()}));
+      restoreState();
+      renderFilterBar();
+      applyFilters();
+    }
+
+    // ---- Google Maps JS APIを動的に読み込み ----
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
+    s.async = true;
+    document.head.appendChild(s);
+  </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかログ｜データ取込ツール（オーナー専用）</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  body{ font-family:sans-serif; background:#F7F3EA; }
+  .log-ok{ color:#2E7D32; } .log-err{ color:#B23A22; }
+</style>
+</head>
+<body class="min-h-screen p-6">
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <div>
+    <h1 class="text-xl font-bold">おかログ データ取込ツール</h1>
+    <p class="text-sm text-gray-600 mt-1">
+      このページは公開サイトからはリンクされていない、オーナー専用の管理ツールです。<br>
+      Googleでログイン → CSVファイルを選択 → 取込、の順で使います。
+    </p>
+  </div>
+
+  <!-- STEP A: ログイン -->
+  <div id="auth-box" class="bg-white border rounded-lg p-4">
+    <p id="auth-status" class="text-sm mb-2">まだログインしていません。</p>
+    <button id="btn-login" class="bg-[#1F2421] text-white text-sm rounded-full px-4 py-2">Googleでログイン</button>
+    <button id="btn-logout" class="hidden text-sm underline text-gray-500 ml-3">ログアウト</button>
+  </div>
+
+  <!-- STEP B: CSV取込（ログイン後のみ表示） -->
+  <div id="import-box" class="hidden bg-white border rounded-lg p-4 space-y-3">
+    <div>
+      <label class="text-sm font-bold block mb-1">① CSVファイルを選択</label>
+      <input type="file" id="csv-file" accept=".csv" class="text-sm">
+      <p class="text-xs text-gray-500 mt-1">
+        列の順番：name, genre, prefecture, city, area, address, taste, scenes, features, url<br>
+        scenesは「デート;接待」のように <b>セミコロン区切り</b> で複数指定できます。<br>
+        テンプレートCSVは README.md と一緒にお渡ししたファイルをご利用ください。
+      </p>
+    </div>
+    <button id="btn-import" class="bg-[#B23A22] text-white text-sm rounded-full px-4 py-2 disabled:opacity-40" disabled>
+      ② Firestoreに取り込む
+    </button>
+    <div id="log" class="text-xs font-mono bg-gray-50 border rounded p-3 h-64 overflow-y-auto whitespace-pre-wrap"></div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { auth, db, googleProvider, GOOGLE_MAPS_API_KEY } from "./firebase-init.js";
+  import {
+    signInWithPopup, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    collection, getDocs, doc, setDoc, query, orderBy, limit
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const authStatus = document.getElementById("auth-status");
+  const btnLogin = document.getElementById("btn-login");
+  const btnLogout = document.getElementById("btn-logout");
+  const importBox = document.getElementById("import-box");
+  const btnImport = document.getElementById("btn-import");
+  const csvFile = document.getElementById("csv-file");
+  const logBox = document.getElementById("log");
+
+  function log(msg, type=""){
+    const line = document.createElement("div");
+    if(type) line.className = `log-${type}`;
+    line.textContent = msg;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  btnLogin.addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+  btnLogout.addEventListener("click", ()=> signOut(auth));
+
+  onAuthStateChanged(auth, (user)=>{
+    if(user){
+      authStatus.textContent = `ログイン中：${user.email}`;
+      btnLogin.classList.add("hidden");
+      btnLogout.classList.remove("hidden");
+      importBox.classList.remove("hidden");
+    }else{
+      authStatus.textContent = "まだログインしていません。";
+      btnLogin.classList.remove("hidden");
+      btnLogout.classList.add("hidden");
+      importBox.classList.add("hidden");
+    }
+  });
+
+  csvFile.addEventListener("change", ()=> btnImport.disabled = !csvFile.files.length);
+
+  // Google Maps Geocoder（住所→緯度経度）を使うためにMaps JS APIを読み込む
+  let geocoder;
+  const mapScript = document.createElement("script");
+  mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=onMapsReady`;
+  window.onMapsReady = ()=>{ geocoder = new google.maps.Geocoder(); };
+  document.head.appendChild(mapScript);
+
+  function geocodeAddress(address){
+    return new Promise((resolve)=>{
+      if(!geocoder){ resolve(null); return; }
+      geocoder.geocode({ address }, (results, status)=>{
+        if(status === "OK" && results[0]){
+          const loc = results[0].geometry.location;
+          resolve({ lat: loc.lat(), lng: loc.lng() });
+        }else{
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  async function nextCurationNo(){
+    const snap = await getDocs(query(collection(db,"restaurants"), orderBy("curationNo","desc"), limit(1)));
+    if(snap.empty) return 1;
+    return (snap.docs[0].data().curationNo || 0) + 1;
+  }
+
+  btnImport.addEventListener("click", ()=>{
+    const file = csvFile.files[0];
+    if(!file) return;
+    btnImport.disabled = true;
+    logBox.innerHTML = "";
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results)=>{
+        let curationNo = await nextCurationNo();
+        log(`${results.data.length}件を読み込みました。取込を開始します…`);
+        for(const row of results.data){
+          const name = (row.name||"").trim();
+          if(!name){ log("スキップ：店名が空の行があります", "err"); continue; }
+          try{
+            const geo = await geocodeAddress(row.address || "");
+            if(!geo) log(`⚠ ${name}：住所から地図位置を特定できませんでした（後で手動修正してください）`, "err");
+            const data = {
+              name,
+              genre: (row.genre||"").trim(),
+              prefecture: (row.prefecture||"").trim(),
+              city: (row.city||"").trim(),
+              area: (row.area||"").trim(),
+              address: (row.address||"").trim(),
+              taste: Number(row.taste) || 0,
+              scenes: (row.scenes||"").split(";").map(s=>s.trim()).filter(Boolean),
+              features: (row.features||"").trim(),
+              url: (row.url||"").trim(),
+              lat: geo ? geo.lat : null,
+              lng: geo ? geo.lng : null,
+              deleteRequested: false,
+              curationNo: curationNo++,
+              updatedAt: new Date().toISOString(),
+            };
+            const ref = doc(collection(db, "restaurants"));
+            await setDoc(ref, data);
+            log(`✔ ${name} を登録しました（No.${data.curationNo}）`, "ok");
+          }catch(e){
+            log(`✘ ${name}：登録に失敗しました（${e.message}）`, "err");
+          }
+        }
+        log("すべて完了しました。index.htmlを開いて反映を確認してください。");
+        btnImport.disabled = false;
+      }
+    });
+  });
+</script>
+</body>
+</html>
