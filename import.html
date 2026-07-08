@@ -50,13 +50,20 @@
     <button id="btn-export" class="bg-[#1F2421] text-white text-sm rounded-full px-4 py-2">今のデータをダウンロード</button>
   </div>
 
+  <div id="repair-box" class="hidden bg-white border rounded-lg p-4 space-y-2">
+    <label class="text-sm font-bold block">地図位置が取得できなかったお店を再取得する</label>
+    <p class="text-xs text-gray-500">住所は登録されているのに地図ピンの位置（緯度経度）だけが未取得のお店を探して、再度取得を試みます。</p>
+    <button id="btn-repair" class="bg-[#1F2421] text-white text-sm rounded-full px-4 py-2">再取得を実行</button>
+    <div id="repair-log" class="text-xs font-mono bg-gray-50 border rounded p-3 h-48 overflow-y-auto whitespace-pre-wrap"></div>
+  </div>
+
 </div>
 
 <script type="module">
   import { auth, db, googleProvider, GOOGLE_MAPS_API_KEY } from "./firebase-init.js";
   import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import {
-    collection, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, limit
+    collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, where, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const authStatus = document.getElementById("auth-status");
@@ -64,6 +71,7 @@
   const btnLogout = document.getElementById("btn-logout");
   const importBox = document.getElementById("import-box");
   const exportBox = document.getElementById("export-box");
+  const repairBox = document.getElementById("repair-box");
   const noPermission = document.getElementById("no-permission");
   const btnImport = document.getElementById("btn-import");
   const csvFile = document.getElementById("csv-file");
@@ -76,12 +84,21 @@
     logBox.appendChild(line);
     logBox.scrollTop = logBox.scrollHeight;
   }
+  function repairLog(msg, type=""){
+    const box = document.getElementById("repair-log");
+    const line = document.createElement("div");
+    if(type) line.className = `log-${type}`;
+    line.textContent = msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
 
   btnLogin.addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
   btnLogout.addEventListener("click", ()=> signOut(auth));
 
   onAuthStateChanged(auth, async (user)=>{
-    importBox.classList.add("hidden"); exportBox.classList.add("hidden"); noPermission.classList.add("hidden");
+    importBox.classList.add("hidden"); exportBox.classList.add("hidden");
+    repairBox.classList.add("hidden"); noPermission.classList.add("hidden");
     if(user){
       authStatus.textContent = `ログイン中：${user.email}`;
       btnLogin.classList.add("hidden"); btnLogout.classList.remove("hidden");
@@ -96,6 +113,7 @@
       if(role === "owner"){
         importBox.classList.remove("hidden");
         exportBox.classList.remove("hidden");
+        repairBox.classList.remove("hidden");
       }else{
         noPermission.classList.remove("hidden");
       }
@@ -113,16 +131,30 @@
   window.onMapsReady = ()=>{ geocoder = new google.maps.Geocoder(); };
   document.head.appendChild(mapScript);
 
-  function geocodeAddress(address){
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  function geocodeOnce(address){
     return new Promise((resolve)=>{
-      if(!geocoder){ resolve(null); return; }
+      if(!geocoder){ resolve({ok:false, status:"NO_GEOCODER"}); return; }
       geocoder.geocode({ address }, (results, status)=>{
         if(status === "OK" && results[0]){
           const loc = results[0].geometry.location;
-          resolve({ lat: loc.lat(), lng: loc.lng() });
-        }else resolve(null);
+          resolve({ok:true, lat: loc.lat(), lng: loc.lng()});
+        }else{
+          resolve({ok:false, status});
+        }
       });
     });
+  }
+  // 混雑（OVER_QUERY_LIMIT）のときは少し待って最大2回まで再挑戦する
+  async function geocodeAddress(address){
+    for(let attempt=0; attempt<3; attempt++){
+      const r = await geocodeOnce(address);
+      if(r.ok) return { lat:r.lat, lng:r.lng };
+      if(r.status !== "OVER_QUERY_LIMIT") return null;
+      await sleep(800 * (attempt+1));
+    }
+    return null;
   }
 
   async function nextCurationNo(){
@@ -175,6 +207,7 @@
             await setDoc(ref, data);
             log(`✔ ${name} を登録しました（No.${data.curationNo}）`, "ok");
           }catch(e){ log(`✘ ${name}：登録に失敗しました（${e.message}）`, "err"); }
+          await sleep(150); // Googleへの問い合わせが集中しすぎないよう少し間隔を空ける
         }
         log("すべて完了しました。トップページで反映を確認してください。");
         btnImport.disabled = false;
@@ -198,6 +231,32 @@
     a.href = URL.createObjectURL(blob);
     a.download = `okalog_export_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
+  });
+
+  document.getElementById("btn-repair").addEventListener("click", async ()=>{
+    const btn = document.getElementById("btn-repair");
+    btn.disabled = true;
+    document.getElementById("repair-log").innerHTML = "";
+    const snap = await getDocs(query(collection(db,"restaurants"), where("lat","==",null)));
+    if(snap.empty){
+      repairLog("地図位置が未取得のお店はありませんでした。");
+      btn.disabled = false;
+      return;
+    }
+    repairLog(`${snap.docs.length}件、地図位置が未取得のお店が見つかりました。再取得を開始します…`);
+    for(const d of snap.docs){
+      const s = d.data();
+      const geo = await geocodeAddress(s.address || "");
+      if(geo){
+        await updateDoc(doc(db,"restaurants",d.id), { lat:geo.lat, lng:geo.lng });
+        repairLog(`✔ ${s.name}：地図位置を取得できました`, "ok");
+      }else{
+        repairLog(`✘ ${s.name}：今回も取得できませんでした（住所を確認してください：${s.address || "(住所未入力)"}）`, "err");
+      }
+      await sleep(200);
+    }
+    repairLog("再取得処理が完了しました。");
+    btn.disabled = false;
   });
 </script>
 </body>
