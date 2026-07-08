@@ -2,23 +2,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // restaurants：誰でも閲覧可。書き込みは「ログインしている人」までは今は許可。
-    // ※これは今の「Phase 1〜暫定」のルールです。
-    //   Phase 2で users コレクションのroleを見て
-    //   「編集者・オーナーだけ書き込み可」に厳しくします。
-    //   このファイルはFirebaseコンソールの「Firestore Database → ルール」に
-    //   貼り付けて公開（Publish）してください。
+    function getRole(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        ? get(/databases/$(database)/documents/users/$(uid)).data.role
+        : 'anonymous';
+    }
+    function isOwner() { return request.auth != null && getRole(request.auth.uid) == 'owner'; }
+    function isEditorOrOwner() {
+      return request.auth != null && getRole(request.auth.uid) in ['owner', 'editor'];
+    }
+
+    // restaurants：閲覧は誰でも。追加・編集は編集者以上。削除はオーナーのみ。
+    // （編集者は「削除」の代わりに deleteRequested / deleteRequestedBy / deleteRequestedAt を
+    //   立てる＝更新なのでこのルールでOK。フィールド単位の制限はかけていません）
     match /restaurants/{restaurantId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, update: if isEditorOrOwner();
+      allow delete: if isOwner();
     }
 
-    // users：本人だけ自分のドキュメントを読み書きできる（role列は将来Cloud Functionで保護）
+    // users：役割(role)を管理。本人は自分のdisplayNameだけ変更可能。
+    // roleの昇格（member→editor→owner）は、オーナーがFirebaseコンソールで直接書き換える運用。
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId
+                     && request.resource.data.role == 'member';
+      allow update: if request.auth != null && request.auth.uid == userId
+                     && request.resource.data.role == resource.data.role;
     }
 
-    // それ以外のコレクションは今のところ非公開
+    // reviews：ログインしていれば誰でも投稿可（本人になりすまし防止のためauthorUidを検証）。
+    // 削除・修正は本人か編集者以上のみ（不適切な投稿の削除用）。
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if request.auth != null &&
+        (resource.data.authorUid == request.auth.uid || isEditorOrOwner());
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
