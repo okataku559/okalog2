@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>おかログ｜データ取込ツール（オーナー専用）</title>
+<title>おかログ｜データ取込・書き出しツール（オーナー専用）</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
@@ -15,52 +15,56 @@
 <div class="max-w-2xl mx-auto space-y-6">
 
   <div>
-    <h1 class="text-xl font-bold">おかログ データ取込ツール</h1>
+    <h1 class="text-xl font-bold">おかログ データ取込・書き出しツール</h1>
     <p class="text-sm text-gray-600 mt-1">
-      このページは公開サイトからはリンクされていない、オーナー専用の管理ツールです。<br>
-      Googleでログイン → CSVファイルを選択 → 取込、の順で使います。
+      オーナー専用のページです。公開サイトからはリンクされていません。
     </p>
   </div>
 
-  <!-- STEP A: ログイン -->
   <div id="auth-box" class="bg-white border rounded-lg p-4">
     <p id="auth-status" class="text-sm mb-2">まだログインしていません。</p>
     <button id="btn-login" class="bg-[#1F2421] text-white text-sm rounded-full px-4 py-2">Googleでログイン</button>
     <button id="btn-logout" class="hidden text-sm underline text-gray-500 ml-3">ログアウト</button>
   </div>
 
-  <!-- STEP B: CSV取込（ログイン後のみ表示） -->
+  <div id="no-permission" class="hidden bg-white border rounded-lg p-4 text-sm text-[#B23A22]">
+    このアカウントには「オーナー」権限がありません。取込・書き出しツールは使えません。
+  </div>
+
   <div id="import-box" class="hidden bg-white border rounded-lg p-4 space-y-3">
     <div>
-      <label class="text-sm font-bold block mb-1">① CSVファイルを選択</label>
+      <label class="text-sm font-bold block mb-1">① CSVファイルを選択して取り込む</label>
       <input type="file" id="csv-file" accept=".csv" class="text-sm">
-      <p class="text-xs text-gray-500 mt-1">
-        列の順番：name, genre, prefecture, city, area, address, taste, scenes, features, url<br>
-        scenesは「デート;接待」のように <b>セミコロン区切り</b> で複数指定できます。<br>
-        テンプレートCSVは README.md と一緒にお渡ししたファイルをご利用ください。
-      </p>
+      <p class="text-xs text-gray-500 mt-1">列の順番：name, genre, prefecture, city, area, address, taste, scenes, features, url（scenesは「;」区切り）</p>
     </div>
-    <button id="btn-import" class="bg-[#B23A22] text-white text-sm rounded-full px-4 py-2 disabled:opacity-40" disabled>
-      ② Firestoreに取り込む
-    </button>
+    <button id="btn-import" class="bg-[#B23A22] text-white text-sm rounded-full px-4 py-2 disabled:opacity-40" disabled>② Firestoreに取り込む</button>
+    <label class="flex items-start gap-2 text-xs text-[#B23A22] bg-[#FBEDE9] border border-[#B23A22]/30 rounded p-2">
+      <input type="checkbox" id="wipe-before-import" class="mt-0.5">
+      <span>既存のお店データを全て削除してから取り込む（データを最新のリストで丸ごと入れ替えたいとき用。口コミは削除されません。元に戻せません）</span>
+    </label>
     <div id="log" class="text-xs font-mono bg-gray-50 border rounded p-3 h-64 overflow-y-auto whitespace-pre-wrap"></div>
+  </div>
+
+  <div id="export-box" class="hidden bg-white border rounded-lg p-4 space-y-2">
+    <label class="text-sm font-bold block">現在のデータをCSVで書き出す</label>
+    <button id="btn-export" class="bg-[#1F2421] text-white text-sm rounded-full px-4 py-2">今のデータをダウンロード</button>
   </div>
 
 </div>
 
 <script type="module">
   import { auth, db, googleProvider, GOOGLE_MAPS_API_KEY } from "./firebase-init.js";
+  import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import {
-    signInWithPopup, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import {
-    collection, getDocs, doc, setDoc, query, orderBy, limit
+    collection, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const authStatus = document.getElementById("auth-status");
   const btnLogin = document.getElementById("btn-login");
   const btnLogout = document.getElementById("btn-logout");
   const importBox = document.getElementById("import-box");
+  const exportBox = document.getElementById("export-box");
+  const noPermission = document.getElementById("no-permission");
   const btnImport = document.getElementById("btn-import");
   const csvFile = document.getElementById("csv-file");
   const logBox = document.getElementById("log");
@@ -76,23 +80,33 @@
   btnLogin.addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
   btnLogout.addEventListener("click", ()=> signOut(auth));
 
-  onAuthStateChanged(auth, (user)=>{
+  onAuthStateChanged(auth, async (user)=>{
+    importBox.classList.add("hidden"); exportBox.classList.add("hidden"); noPermission.classList.add("hidden");
     if(user){
       authStatus.textContent = `ログイン中：${user.email}`;
-      btnLogin.classList.add("hidden");
-      btnLogout.classList.remove("hidden");
-      importBox.classList.remove("hidden");
+      btnLogin.classList.add("hidden"); btnLogout.classList.remove("hidden");
+
+      const ref = doc(db, "users", user.uid);
+      let snap = await getDoc(ref).catch(()=>null);
+      if(!snap || !snap.exists()){
+        await setDoc(ref, { email:user.email, displayName:user.displayName||"名無しさん", role:"member", createdAt:new Date().toISOString() });
+        snap = await getDoc(ref);
+      }
+      const role = snap.data().role;
+      if(role === "owner"){
+        importBox.classList.remove("hidden");
+        exportBox.classList.remove("hidden");
+      }else{
+        noPermission.classList.remove("hidden");
+      }
     }else{
       authStatus.textContent = "まだログインしていません。";
-      btnLogin.classList.remove("hidden");
-      btnLogout.classList.add("hidden");
-      importBox.classList.add("hidden");
+      btnLogin.classList.remove("hidden"); btnLogout.classList.add("hidden");
     }
   });
 
   csvFile.addEventListener("change", ()=> btnImport.disabled = !csvFile.files.length);
 
-  // Google Maps Geocoder（住所→緯度経度）を使うためにMaps JS APIを読み込む
   let geocoder;
   const mapScript = document.createElement("script");
   mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=onMapsReady`;
@@ -106,9 +120,7 @@
         if(status === "OK" && results[0]){
           const loc = results[0].geometry.location;
           resolve({ lat: loc.lat(), lng: loc.lng() });
-        }else{
-          resolve(null);
-        }
+        }else resolve(null);
       });
     });
   }
@@ -119,16 +131,30 @@
     return (snap.docs[0].data().curationNo || 0) + 1;
   }
 
-  btnImport.addEventListener("click", ()=>{
+  async function wipeAllRestaurants(){
+    const snap = await getDocs(collection(db,"restaurants"));
+    log(`既存データ ${snap.docs.length}件を削除しています…`);
+    for(const d of snap.docs){
+      await deleteDoc(doc(db,"restaurants",d.id));
+    }
+    log("既存データの削除が完了しました。");
+  }
+
+  btnImport.addEventListener("click", async ()=>{
     const file = csvFile.files[0];
     if(!file) return;
+    const wipe = document.getElementById("wipe-before-import").checked;
+    if(wipe){
+      const ok = confirm("既存のお店データを全て削除してから取り込みます。元に戻せません。本当によろしいですか？");
+      if(!ok) return;
+    }
     btnImport.disabled = true;
     logBox.innerHTML = "";
+    if(wipe){ await wipeAllRestaurants(); }
     Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
+      header: true, skipEmptyLines: true,
       complete: async (results)=>{
-        let curationNo = await nextCurationNo();
+        let curationNo = wipe ? 1 : await nextCurationNo();
         log(`${results.data.length}件を読み込みました。取込を開始します…`);
         for(const row of results.data){
           const name = (row.name||"").trim();
@@ -137,33 +163,41 @@
             const geo = await geocodeAddress(row.address || "");
             if(!geo) log(`⚠ ${name}：住所から地図位置を特定できませんでした（後で手動修正してください）`, "err");
             const data = {
-              name,
-              genre: (row.genre||"").trim(),
-              prefecture: (row.prefecture||"").trim(),
-              city: (row.city||"").trim(),
-              area: (row.area||"").trim(),
-              address: (row.address||"").trim(),
+              name, genre:(row.genre||"").trim(), prefecture:(row.prefecture||"").trim(),
+              city:(row.city||"").trim(), area:(row.area||"").trim(), address:(row.address||"").trim(),
               taste: Number(row.taste) || 0,
               scenes: (row.scenes||"").split(";").map(s=>s.trim()).filter(Boolean),
-              features: (row.features||"").trim(),
-              url: (row.url||"").trim(),
-              lat: geo ? geo.lat : null,
-              lng: geo ? geo.lng : null,
-              deleteRequested: false,
-              curationNo: curationNo++,
-              updatedAt: new Date().toISOString(),
+              features:(row.features||"").trim(), url:(row.url||"").trim(),
+              lat: geo?geo.lat:null, lng: geo?geo.lng:null,
+              deleteRequested:false, curationNo:curationNo++, updatedAt:new Date().toISOString(),
             };
             const ref = doc(collection(db, "restaurants"));
             await setDoc(ref, data);
             log(`✔ ${name} を登録しました（No.${data.curationNo}）`, "ok");
-          }catch(e){
-            log(`✘ ${name}：登録に失敗しました（${e.message}）`, "err");
-          }
+          }catch(e){ log(`✘ ${name}：登録に失敗しました（${e.message}）`, "err"); }
         }
-        log("すべて完了しました。index.htmlを開いて反映を確認してください。");
+        log("すべて完了しました。トップページで反映を確認してください。");
         btnImport.disabled = false;
       }
     });
+  });
+
+  document.getElementById("btn-export").addEventListener("click", async ()=>{
+    const snap = await getDocs(collection(db,"restaurants"));
+    const rows = snap.docs.map(d=>{
+      const s = d.data();
+      return {
+        name:s.name||"", genre:s.genre||"", prefecture:s.prefecture||"", city:s.city||"",
+        area:s.area||"", address:s.address||"", taste:s.taste||0,
+        scenes:(s.scenes||[]).join(";"), features:s.features||"", url:s.url||"",
+      };
+    });
+    const csv = Papa.unparse(rows);
+    const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `okalog_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
   });
 </script>
 </body>
