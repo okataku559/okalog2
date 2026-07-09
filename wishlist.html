@@ -18,6 +18,7 @@
   .btn-primary:hover{ background:var(--shu-dark); }
   .item-card{ transition: box-shadow .15s; }
   .item-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.08); }
+  .wl-tab[data-active="true"]{ background:var(--shu); color:#fff; border-color:var(--shu); }
 </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -58,9 +59,23 @@
 
       <!-- 一覧 -->
       <section>
-        <h2 class="font-bold text-sm mb-2">リスト一覧</h2>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 class="font-bold text-sm">リスト一覧</h2>
+          <p id="result-count" class="text-xs text-[var(--ink)]/50"></p>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <div class="flex gap-1.5" id="filter-mine">
+            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+            <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
+          </div>
+          <div class="flex gap-1.5" id="filter-status">
+            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+            <button data-value="unvisited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">未訪問</button>
+            <button data-value="visited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">訪問済み</button>
+          </div>
+        </div>
         <div id="wish-list" class="flex flex-col gap-3"></div>
-        <p id="empty-msg" class="hidden text-xs text-[var(--ink)]/50 text-center py-8">まだ登録がありません。</p>
+        <p id="empty-msg" class="hidden text-xs text-[var(--ink)]/50 text-center py-8">条件に合う登録がありません。</p>
       </section>
     </div>
   </main>
@@ -128,11 +143,38 @@
       loadWishlist();
     });
 
+    let allWishItems = [];
+    const wlFilter = { mine: "all", status: "all" };
+
     async function loadWishlist(){
       const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
-      const items = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      renderWishlist(items);
+      allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      applyWishlistFilter();
     }
+
+    function applyWishlistFilter(){
+      const filtered = allWishItems.filter(item=>{
+        if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
+        if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
+        return true;
+      });
+      document.getElementById("result-count").textContent = `${filtered.length}件`;
+      renderWishlist(filtered);
+    }
+
+    function setupTabGroup(containerId, key){
+      const box = document.getElementById(containerId);
+      box.querySelectorAll(".wl-tab").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          box.querySelectorAll(".wl-tab").forEach(b=> b.dataset.active = "false");
+          btn.dataset.active = "true";
+          wlFilter[key] = btn.dataset.value;
+          applyWishlistFilter();
+        });
+      });
+    }
+    setupTabGroup("filter-mine", "mine");
+    setupTabGroup("filter-status", "status");
 
     function renderWishlist(items){
       const box = document.getElementById("wish-list");
