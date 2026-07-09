@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>おかログ｜データ取込・書き出しツール（オーナー専用）</title>
+<link rel="icon" href="logo.png" type="image/png">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
@@ -148,13 +149,15 @@
   }
   // 混雑（OVER_QUERY_LIMIT）のときは少し待って最大2回まで再挑戦する
   async function geocodeAddress(address){
+    let lastStatus = "UNKNOWN";
     for(let attempt=0; attempt<3; attempt++){
       const r = await geocodeOnce(address);
-      if(r.ok) return { lat:r.lat, lng:r.lng };
-      if(r.status !== "OVER_QUERY_LIMIT") return null;
+      if(r.ok) return { ok:true, lat:r.lat, lng:r.lng };
+      lastStatus = r.status;
+      if(r.status !== "OVER_QUERY_LIMIT") return { ok:false, status:lastStatus };
       await sleep(800 * (attempt+1));
     }
-    return null;
+    return { ok:false, status:lastStatus };
   }
 
   async function nextCurationNo(){
@@ -193,14 +196,14 @@
           if(!name){ log("スキップ：店名が空の行があります", "err"); continue; }
           try{
             const geo = await geocodeAddress(row.address || "");
-            if(!geo) log(`⚠ ${name}：住所から地図位置を特定できませんでした（後で手動修正してください）`, "err");
+            if(!geo.ok) log(`⚠ ${name}：住所から地図位置を特定できませんでした（Google応答：${geo.status}）`, "err");
             const data = {
               name, genre:(row.genre||"").trim(), prefecture:(row.prefecture||"").trim(),
               city:(row.city||"").trim(), area:(row.area||"").trim(), address:(row.address||"").trim(),
               taste: Number(row.taste) || 0,
               scenes: (row.scenes||"").split(";").map(s=>s.trim()).filter(Boolean),
               features:(row.features||"").trim(), url:(row.url||"").trim(),
-              lat: geo?geo.lat:null, lng: geo?geo.lng:null,
+              lat: geo.ok?geo.lat:null, lng: geo.ok?geo.lng:null,
               deleteRequested:false, curationNo:curationNo++, updatedAt:new Date().toISOString(),
             };
             const ref = doc(collection(db, "restaurants"));
@@ -247,11 +250,11 @@
     for(const d of snap.docs){
       const s = d.data();
       const geo = await geocodeAddress(s.address || "");
-      if(geo){
+      if(geo.ok){
         await updateDoc(doc(db,"restaurants",d.id), { lat:geo.lat, lng:geo.lng });
         repairLog(`✔ ${s.name}：地図位置を取得できました`, "ok");
       }else{
-        repairLog(`✘ ${s.name}：今回も取得できませんでした（住所を確認してください：${s.address || "(住所未入力)"}）`, "err");
+        repairLog(`✘ ${s.name}：今回も取得できませんでした（Google応答：${geo.status} ／ 住所：${s.address || "(住所未入力)"}）`, "err");
       }
       await sleep(200);
     }

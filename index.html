@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>おかログ｜本当に行って良かったお店だけ。</title>
+<link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -14,16 +15,11 @@
   }
   html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
   .font-display{ font-family:"Shippori Mincho",serif; }
-  .curation-badge{ font-family:"Shippori Mincho",serif; font-variant-numeric: tabular-nums; }
-  .chip{ transition:background-color .15s, color .15s, border-color .15s; }
-  .chip[data-active="true"]{ background:var(--shu); color:#fff; border-color:var(--shu); }
   .store-card{ transition: box-shadow .15s, transform .15s; }
   .store-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.10); transform:translateY(-1px); }
   .store-card[data-selected="true"]{ outline:2px solid var(--shu); outline-offset:-2px; }
   .btn-primary{ background:var(--shu); color:#fff; }
   .btn-primary:hover{ background:var(--shu-dark); }
-  .panel{ max-height:0; overflow:hidden; transition:max-height .2s ease; }
-  .panel[data-open="true"]{ max-height:70vh; overflow-y:auto; }
   dialog::backdrop{ background:rgba(31,36,33,.5); }
   dialog{ border:none; border-radius:.75rem; padding:0; }
   ::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
@@ -34,10 +30,10 @@
 
   <!-- ヘッダー -->
   <header class="bg-[var(--ink)] text-[var(--paper)]">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-      <div class="flex items-baseline gap-3">
-        <h1 class="font-display text-2xl md:text-3xl font-extrabold tracking-wide">おかログ</h1>
-        <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">本当に行って良かったお店だけ。関西中心にエリア拡大中。</p>
+    <div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="おかログ｜本当に行って良かったお店だけ。" class="h-14 md:h-16 w-auto rounded-lg">
+        <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">関西中心にエリア拡大中。</p>
       </div>
       <div id="auth-area" class="text-xs md:text-sm flex items-center gap-2"></div>
     </div>
@@ -45,34 +41,20 @@
 
   <!-- 検索・絞り込みバー -->
   <section class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
-    <div class="max-w-7xl mx-auto px-4 py-3 space-y-2">
+    <div class="max-w-7xl mx-auto px-4 py-3">
       <div class="flex flex-wrap gap-2 items-center">
         <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-city" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
         <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
-        <button id="btn-toggle-panel" class="border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 text-sm shrink-0 bg-white">
-          絞り込み<span id="filter-count" class="hidden"></span>
-        </button>
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
         <button id="btn-add-store" class="hidden btn-primary rounded-full px-3 py-1.5 text-sm shrink-0">＋ お店を追加</button>
       </div>
-      <div id="filter-panel" class="panel bg-white border border-[var(--line)] rounded-xl p-3 space-y-3">
-        <div>
-          <p class="text-xs font-bold text-[var(--ink)]/60 mb-1">エリア</p>
-          <div id="f-area" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-[var(--ink)]/60 mb-1">ジャンル</p>
-          <div id="f-genre" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-[var(--ink)]/60 mb-1">利用シーン</p>
-          <div id="f-scene" class="flex flex-wrap gap-1.5"></div>
-        </div>
-      </div>
     </div>
   </section>
+
 
   <!-- メイン -->
   <main class="flex-1 max-w-7xl w-full mx-auto md:flex md:gap-4 px-4 py-4">
@@ -110,7 +92,7 @@
         </select>
       </label>
       <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
-      <label class="block text-xs font-bold">特徴・メモ<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
+      <label class="block text-xs font-bold">おすすめポイント（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
       <label class="block text-xs font-bold">外部URL（予約サイト等）<input id="sf-url" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
       <p id="sf-status" class="text-xs text-[var(--shu)]"></p>
       <div class="flex justify-end gap-2 pt-2">
@@ -196,41 +178,25 @@
     });
 
     // ---------------------------------------------------------------
-    // 検索・絞り込み状態
+    // 検索・絞り込み状態（すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", city:"", areas:new Set(), genres:new Set(), scenes:new Set(), keyword:"" };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"" };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
 
-    const STORAGE_KEY = "okalog_search_state_v1";
+    const STORAGE_KEY = "okalog_search_state_v2";
     function saveState(){
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        pref:state.pref, city:state.city, areas:[...state.areas], genres:[...state.genres],
-        scenes:[...state.scenes], keyword:state.keyword, scrollY:window.scrollY,
-      }));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, scrollY:window.scrollY }));
     }
     function restoreState(){
       const raw = sessionStorage.getItem(STORAGE_KEY); if(!raw) return;
       try{
         const s = JSON.parse(raw);
-        state.pref=s.pref||""; state.city=s.city||"";
-        state.areas=new Set(s.areas||[]); state.genres=new Set(s.genres||[]); state.scenes=new Set(s.scenes||[]);
+        state.pref=s.pref||""; state.area=s.area||""; state.genre=s.genre||""; state.scene=s.scene||"";
         state.keyword=s.keyword||"";
         requestAnimationFrame(()=> window.scrollTo(0, s.scrollY||0));
       }catch(e){}
     }
     window.addEventListener("pagehide", saveState);
-
-    function updateFilterCount(){
-      const n = state.areas.size + state.genres.size + state.scenes.size;
-      const badge = document.getElementById("filter-count");
-      if(n>0){ badge.textContent = `（${n}）`; badge.classList.remove("hidden"); }
-      else{ badge.classList.add("hidden"); }
-    }
-
-    document.getElementById("btn-toggle-panel").addEventListener("click", ()=>{
-      const panel = document.getElementById("filter-panel");
-      panel.dataset.open = panel.dataset.open === "true" ? "false" : "true";
-    });
 
     function fillPrefSelect(){
       const sel = document.getElementById("f-pref");
@@ -238,50 +204,41 @@
         Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
       sel.value = state.pref;
     }
-    function fillCitySelect(){
-      const sel = document.getElementById("f-city");
-      const cities = state.pref ? Object.keys(AREA_TREE[state.pref]) : [];
-      sel.innerHTML = `<option value="">市区町村（すべて）</option>` + cities.map(c=>`<option value="${c}">${c}</option>`).join("");
-      sel.value = state.city; sel.disabled = cities.length === 0;
+    function fillAreaSelect(){
+      const sel = document.getElementById("f-area");
+      if(!state.pref){
+        sel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
+        sel.disabled = true; sel.value = "";
+        return;
+      }
+      const areas = [...new Set(Object.values(AREA_TREE[state.pref]).flat())];
+      sel.innerHTML = `<option value="">エリア（すべて）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+      sel.disabled = false; sel.value = state.area;
     }
-    function currentAreaOptions(){
-      if(state.pref && state.city) return AREA_TREE[state.pref][state.city];
-      if(state.pref) return Object.values(AREA_TREE[state.pref]).flat();
-      return Object.values(AREA_TREE).flatMap(cityMap => Object.values(cityMap).flat());
+    function fillGenreSelect(){
+      const sel = document.getElementById("f-genre");
+      sel.innerHTML = `<option value="">ジャンル（すべて）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
+      sel.value = state.genre;
     }
-    function renderChipGroup(containerId, options, selectedSet){
-      const box = document.getElementById(containerId); box.innerHTML = "";
-      options.forEach(opt=>{
-        const chip = document.createElement("button");
-        chip.type = "button"; chip.textContent = opt; chip.dataset.active = selectedSet.has(opt);
-        chip.className = "chip text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white";
-        chip.addEventListener("click", ()=>{
-          selectedSet.has(opt) ? selectedSet.delete(opt) : selectedSet.add(opt);
-          chip.dataset.active = selectedSet.has(opt);
-          updateFilterCount(); applyFilters();
-        });
-        box.appendChild(chip);
-      });
+    function fillSceneSelect(){
+      const sel = document.getElementById("f-scene");
+      sel.innerHTML = `<option value="">利用シーン（すべて）</option>` + SCENES.map(s=>`<option value="${s}">${s}</option>`).join("");
+      sel.value = state.scene;
     }
     function renderFilterBar(){
-      fillPrefSelect(); fillCitySelect();
-      renderChipGroup("f-area", [...new Set(currentAreaOptions())], state.areas);
-      renderChipGroup("f-genre", GENRES, state.genres);
-      renderChipGroup("f-scene", SCENES, state.scenes);
+      fillPrefSelect(); fillAreaSelect(); fillGenreSelect(); fillSceneSelect();
       document.getElementById("f-keyword").value = state.keyword;
-      updateFilterCount();
     }
     document.getElementById("f-pref").addEventListener("change", e=>{
-      state.pref = e.target.value; state.city = ""; state.areas.clear();
-      renderFilterBar(); applyFilters();
+      state.pref = e.target.value; state.area = "";
+      fillAreaSelect(); applyFilters();
     });
-    document.getElementById("f-city").addEventListener("change", e=>{
-      state.city = e.target.value; state.areas.clear();
-      renderFilterBar(); applyFilters();
-    });
+    document.getElementById("f-area").addEventListener("change", e=>{ state.area = e.target.value; applyFilters(); });
+    document.getElementById("f-genre").addEventListener("change", e=>{ state.genre = e.target.value; applyFilters(); });
+    document.getElementById("f-scene").addEventListener("change", e=>{ state.scene = e.target.value; applyFilters(); });
     document.getElementById("f-keyword").addEventListener("input", e=>{ state.keyword = e.target.value; applyFilters(); });
     document.getElementById("btn-clear").addEventListener("click", ()=>{
-      state.pref=""; state.city=""; state.areas.clear(); state.genres.clear(); state.scenes.clear(); state.keyword="";
+      state.pref=""; state.area=""; state.genre=""; state.scene=""; state.keyword="";
       renderFilterBar(); applyFilters();
     });
 
@@ -289,10 +246,9 @@
       const kw = state.keyword.trim().toLowerCase();
       const filtered = allStores.filter(s=>{
         if(state.pref && s.prefecture !== state.pref) return false;
-        if(state.city && s.city !== state.city) return false;
-        if(state.areas.size && !state.areas.has(s.area)) return false;
-        if(state.genres.size && !state.genres.has(s.genre)) return false;
-        if(state.scenes.size && !(s.scenes||[]).some(sc=>state.scenes.has(sc))) return false;
+        if(state.area && s.area !== state.area) return false;
+        if(state.genre && s.genre !== state.genre) return false;
+        if(state.scene && !(s.scenes||[]).includes(state.scene)) return false;
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
         return true;
       });
@@ -319,18 +275,25 @@
         }else if(s.deleteRequested && isRequester){
           deleteBadge = ' <span class="text-[10px] text-[var(--shu)] border border-[var(--shu)] rounded-full px-2 py-0.5 align-middle">削除依頼中</span>';
         }
+        const mapQuery = (s.lat && s.lng) ? `${s.lat},${s.lng}` : (s.address || s.name);
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         const card = document.createElement("article");
         card.className = "store-card bg-white border border-[var(--line)] rounded-xl p-3";
         card.dataset.id = s.id;
         card.innerHTML = `
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
-            <span class="curation-badge text-[var(--shu)] text-lg font-bold shrink-0">No.${String(s.curationNo ?? (i+1)).padStart(3,"0")}</span>
             <div class="flex-1 min-w-0">
               <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}</h3>
               <p class="text-xs text-[var(--ink)]/60">${s.area} ／ ${s.genre}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
             </div>
+          </div>
+          ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${s.features}</p>` : ""}
+          <p class="text-xs text-[var(--ink)]/60 mt-2">${s.address || ""}</p>
+          <div class="flex flex-wrap gap-3 mt-1 text-xs">
+            <a href="${mapUrl}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">Googleマップで見る</a>
+            ${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">お店のサイト・予約はこちら</a>` : ""}
           </div>
           <div class="flex flex-wrap gap-2 mt-2 text-xs">
             <button data-role="toggle-review" class="underline underline-offset-2 text-[var(--ink)]/70">口コミを見る・書く</button>
