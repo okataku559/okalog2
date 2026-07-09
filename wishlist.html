@@ -127,29 +127,44 @@
       const memo = document.getElementById("wl-memo").value.trim();
       const referenceUrl = document.getElementById("wl-url").value.trim();
       const anonymous = document.getElementById("wl-anonymous").checked;
-      await addDoc(collection(db,"wishlist"), {
-        name, memo, referenceUrl,
-        addedBy: currentUser.uid,
-        addedByNickname: currentNickname,
-        anonymous,
-        status: "unvisited",
-        impression: "", impressionByNickname: "",
-        createdAt: new Date().toISOString(),
-      });
-      document.getElementById("wl-name").value = "";
-      document.getElementById("wl-memo").value = "";
-      document.getElementById("wl-url").value = "";
-      document.getElementById("wl-anonymous").checked = false;
-      loadWishlist();
+      const btn = document.getElementById("btn-add-wish");
+      btn.disabled = true;
+      try{
+        await addDoc(collection(db,"wishlist"), {
+          name, memo, referenceUrl,
+          addedBy: currentUser.uid,
+          addedByNickname: currentNickname,
+          anonymous,
+          status: "unvisited",
+          impression: "", impressionByNickname: "",
+          createdAt: new Date().toISOString(),
+        });
+        document.getElementById("wl-name").value = "";
+        document.getElementById("wl-memo").value = "";
+        document.getElementById("wl-url").value = "";
+        document.getElementById("wl-anonymous").checked = false;
+        loadWishlist();
+      }catch(e){
+        console.error(e);
+        alert(`登録に失敗しました。\n\nエラー内容：${e.code || e.message}\n\nFirestoreのルールが最新版になっているか確認してください。`);
+      }finally{
+        btn.disabled = false;
+      }
     });
 
     let allWishItems = [];
     const wlFilter = { mine: "all", status: "all" };
 
     async function loadWishlist(){
-      const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
-      allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      applyWishlistFilter();
+      try{
+        const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
+        allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        applyWishlistFilter();
+      }catch(e){
+        console.error(e);
+        document.getElementById("wish-list").innerHTML =
+          `<p class="text-xs text-[var(--shu)]">一覧の読み込みに失敗しました（${e.code || e.message}）。Firestoreのルールが最新版になっているか確認してください。</p>`;
+      }
     }
 
     function applyWishlistFilter(){
