@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかログ｜行きたい店リスト</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#1F2421; --paper:#FBF7EE; --paper-dim:#F1EBDC;
+    --shu:#B23A22; --shu-dark:#8C2C19; --line:#DDD3BE;
+  }
+  html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
+  .btn-primary{ background:var(--shu); color:#fff; }
+  .btn-primary:hover{ background:var(--shu-dark); }
+  .item-card{ transition: box-shadow .15s; }
+  .item-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.08); }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <header class="bg-[var(--ink)] text-[var(--paper)]">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <a href="index.html"><img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg"></a>
+        <h1 class="text-base md:text-lg font-bold">行きたい店リスト</h1>
+      </div>
+      <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">検索画面に戻る</a>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6 space-y-6">
+
+    <div id="login-required" class="hidden bg-white border border-[var(--line)] rounded-xl p-6 text-center space-y-3">
+      <p class="text-sm">行きたい店リストの閲覧・登録には、Googleログインが必要です。</p>
+      <button id="btn-login" class="btn-primary rounded-full px-4 py-2 text-sm">Googleでログイン</button>
+    </div>
+
+    <div id="content" class="hidden space-y-6">
+      <!-- 新規登録フォーム -->
+      <section class="bg-white border border-[var(--line)] rounded-xl p-4 space-y-2">
+        <h2 class="font-bold text-sm">＋ 行きたいお店を登録する</h2>
+        <input id="wl-name" type="text" placeholder="お店の名前"
+               class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+        <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
+               class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
+        <input id="wl-url" type="text" placeholder="参考リンク（Instagramの投稿URLなど・任意）"
+               class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+        <label class="flex items-center gap-2 text-xs text-[var(--ink)]/70">
+          <input type="checkbox" id="wl-anonymous">
+          匿名で登録する（誰が登録したか他の人には表示されません）
+        </label>
+        <button id="btn-add-wish" class="btn-primary rounded-full px-4 py-1.5 text-sm">登録する</button>
+      </section>
+
+      <!-- 一覧 -->
+      <section>
+        <h2 class="font-bold text-sm mb-2">リスト一覧</h2>
+        <div id="wish-list" class="flex flex-col gap-3"></div>
+        <p id="empty-msg" class="hidden text-xs text-[var(--ink)]/50 text-center py-8">まだ登録がありません。</p>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { db, auth, googleProvider, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_WISHLIST_TEMPLATE_ID } from "./firebase-init.js";
+    import {
+      collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc, orderBy, query
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import emailjs from "https://esm.run/@emailjs/browser";
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+    let currentUser = null;
+    let currentRole = "anonymous";
+    let currentNickname = "";
+
+    document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+
+    async function ensureUserDoc(user){
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref).catch(()=>null);
+      if(!snap || !snap.exists()){
+        await setDoc(ref, { email:user.email, displayName:user.displayName||"名無しさん", role:"member", createdAt:new Date().toISOString() });
+      }
+      return (await getDoc(ref)).data();
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      currentUser = user;
+      const loginBox = document.getElementById("login-required");
+      const content = document.getElementById("content");
+      if(user){
+        const data = await ensureUserDoc(user);
+        currentRole = data.role || "member";
+        currentNickname = data.displayName || user.displayName || "名無しさん";
+        loginBox.classList.add("hidden");
+        content.classList.remove("hidden");
+        loadWishlist();
+      }else{
+        loginBox.classList.remove("hidden");
+        content.classList.add("hidden");
+      }
+    });
+
+    document.getElementById("btn-add-wish").addEventListener("click", async ()=>{
+      const name = document.getElementById("wl-name").value.trim();
+      if(!name){ alert("お店の名前を入力してください"); return; }
+      const memo = document.getElementById("wl-memo").value.trim();
+      const referenceUrl = document.getElementById("wl-url").value.trim();
+      const anonymous = document.getElementById("wl-anonymous").checked;
+      await addDoc(collection(db,"wishlist"), {
+        name, memo, referenceUrl,
+        addedBy: currentUser.uid,
+        addedByNickname: currentNickname,
+        anonymous,
+        status: "unvisited",
+        impression: "", impressionByNickname: "",
+        createdAt: new Date().toISOString(),
+      });
+      document.getElementById("wl-name").value = "";
+      document.getElementById("wl-memo").value = "";
+      document.getElementById("wl-url").value = "";
+      document.getElementById("wl-anonymous").checked = false;
+      loadWishlist();
+    });
+
+    async function loadWishlist(){
+      const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
+      const items = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderWishlist(items);
+    }
+
+    function renderWishlist(items){
+      const box = document.getElementById("wish-list");
+      const empty = document.getElementById("empty-msg");
+      box.innerHTML = "";
+      empty.classList.toggle("hidden", items.length>0);
+
+      items.forEach(item=>{
+        const isMine = currentUser && item.addedBy === currentUser.uid;
+        const requesterLabel = item.anonymous ? "（匿名）" : `${item.addedByNickname || "名無しさん"} さんが登録`;
+        const canDelete = isMine || currentRole === "owner" || currentRole === "editor";
+        const visited = item.status === "visited";
+
+        const card = document.createElement("article");
+        card.className = "item-card bg-white border border-[var(--line)] rounded-xl p-3";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}</h3>
+              ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
+              ${item.referenceUrl ? `<a href="${item.referenceUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--shu)] underline underline-offset-2 mt-1 inline-block">参考リンクを見る</a>` : ""}
+              <p class="text-[10px] text-[var(--ink)]/40 mt-1">${requesterLabel}${isMine && item.anonymous ? "（自分の登録です）" : ""}</p>
+            </div>
+            ${canDelete ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2 shrink-0">削除</button>` : ""}
+          </div>
+          ${visited ? `
+            <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs">
+              <span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}
+            </div>
+          ` : `
+            <div class="mt-2 pt-2 border-t border-[var(--line)] flex gap-2" data-role="impression-form">
+              <input type="text" placeholder="行ってきた感想を書く" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="impression-input">
+              <button class="btn-primary text-xs rounded-full px-3" data-role="impression-submit">投稿</button>
+            </div>
+          `}
+        `;
+        if(canDelete){
+          card.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
+            if(!confirm(`「${item.name}」をリストから削除します。よろしいですか？`)) return;
+            await deleteDoc(doc(db,"wishlist",item.id));
+            loadWishlist();
+          });
+        }
+        if(!visited){
+          card.querySelector('[data-role="impression-submit"]').addEventListener("click", async ()=>{
+            const input = card.querySelector('[data-role="impression-input"]');
+            const text = input.value.trim();
+            if(!text) return;
+            await updateDoc(doc(db,"wishlist",item.id), {
+              status: "visited", impression: text, impressionByNickname: currentNickname,
+            });
+            notifyRegistrant(item, text);
+            loadWishlist();
+          });
+        }
+        box.appendChild(card);
+      });
+    }
+
+    // 感想が投稿されたら、登録した本人（匿名で登録していても本人には）にメール通知する
+    async function notifyRegistrant(item, impressionText){
+      if(!item.addedBy || item.addedBy === currentUser.uid) return; // 自分自身への通知はしない
+      try{
+        const userSnap = await getDoc(doc(db,"users",item.addedBy));
+        if(!userSnap.exists()) return;
+        const toEmail = userSnap.data().email;
+        if(!toEmail) return;
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, {
+          to_email: toEmail,
+          store_name: item.name,
+          commenter_name: currentNickname,
+          impression_text: impressionText,
+        });
+      }catch(e){
+        console.error("行きたい店リストの通知メール送信に失敗しました", e);
+      }
+    }
+  </script>
+</body>
+</html>

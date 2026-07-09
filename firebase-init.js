@@ -23,6 +23,9 @@ export const EMAILJS_PUBLIC_KEY = "atB1vP1gEA7QY80dx";
 export const EMAILJS_SERVICE_ID = "service_u4dvepf";
 export const EMAILJS_TEMPLATE_ID = "template_vqco75e";
 
+// ★行きたい店リストへの感想通知用（新しいテンプレートを作成後、ここに貼り付け）
+export const EMAILJS_WISHLIST_TEMPLATE_ID = "ここに自分のEmailJS Template ID（行きたい店リスト用）を貼り付け";
+
 // --- 以下は書き換え不要（共通の初期化処理） ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
