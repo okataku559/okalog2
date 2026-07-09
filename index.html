@@ -12,14 +12,23 @@
   :root{
     --ink:#1F2421; --paper:#FBF7EE; --paper-dim:#F1EBDC;
     --shu:#B23A22; --shu-dark:#8C2C19; --kin:#B8902E; --line:#DDD3BE;
+    --wish:#2B5DA6; --wish-dark:#204A87;
   }
   html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
   .font-display{ font-family:"Shippori Mincho",serif; }
   .store-card{ transition: box-shadow .15s, transform .15s; }
   .store-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.10); transform:translateY(-1px); }
   .store-card[data-selected="true"]{ outline:2px solid var(--shu); outline-offset:-2px; }
+  .wish-card{ border-left:4px solid var(--wish) !important; }
   .btn-primary{ background:var(--shu); color:#fff; }
   .btn-primary:hover{ background:var(--shu-dark); }
+  .btn-wish{ background:var(--wish); color:#fff; }
+  .btn-wish:hover{ background:var(--wish-dark); }
+  .mode-tab{ padding:.5rem 1rem; font-size:.8125rem; font-weight:700; border-bottom:3px solid transparent; color:var(--ink); opacity:.55; }
+  .mode-tab[data-active="true"]{ opacity:1; }
+  .mode-tab[data-mode="official"][data-active="true"]{ border-color:var(--shu); color:var(--shu); }
+  .mode-tab[data-mode="wishlist"][data-active="true"]{ border-color:var(--wish); color:var(--wish); }
+  .wl-tab[data-active="true"]{ background:var(--wish); color:#fff; border-color:var(--wish); }
   dialog::backdrop{ background:rgba(31,36,33,.5); }
   dialog{ border:none; border-radius:.75rem; padding:0; }
   ::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
@@ -39,8 +48,16 @@
     </div>
   </header>
 
-  <!-- 検索・絞り込みバー -->
-  <section class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
+  <!-- モード切り替えタブ -->
+  <nav class="bg-white border-b border-[var(--line)]">
+    <div class="max-w-7xl mx-auto px-4 flex gap-1">
+      <button id="tab-official" class="mode-tab" data-mode="official" data-active="true">実際に行って良かった店</button>
+      <button id="tab-wishlist" class="mode-tab" data-mode="wishlist">行ってみたい店</button>
+    </div>
+  </nav>
+
+  <!-- 検索・絞り込みバー（「実際に行って良かった店」モード） -->
+  <section id="official-controls" class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
     <div class="max-w-7xl mx-auto px-4 py-3">
       <div class="flex flex-wrap gap-2 items-center">
         <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
@@ -55,22 +72,58 @@
     </div>
   </section>
 
+  <!-- 登録・絞り込み（「行ってみたい店」モード） -->
+  <section id="wishlist-controls" class="hidden border-b border-[var(--line)] bg-[var(--paper)]">
+    <div class="max-w-7xl mx-auto px-4 py-3 space-y-3">
+      <div id="wishlist-login-required" class="hidden text-sm text-center py-3">
+        行ってみたい店の閲覧・登録には、Googleログインが必要です。
+        <button id="btn-wishlist-login" class="btn-wish rounded-full px-4 py-1.5 text-sm ml-2">Googleでログイン</button>
+      </div>
+      <div id="wishlist-form-area" class="space-y-3">
+        <div class="bg-white border border-[var(--line)] rounded-xl p-3 space-y-2">
+          <p class="font-bold text-xs">＋ 行ってみたいお店を登録する</p>
+          <input id="wl-name" type="text" placeholder="お店の名前"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
+          <input id="wl-address" type="text" placeholder="住所（任意・分かる範囲でOK。地図に表示されます）"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <input id="wl-url" type="text" placeholder="参考リンク（Instagramの投稿URLなど・任意）"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <label class="flex items-center gap-2 text-xs text-[var(--ink)]/70">
+            <input type="checkbox" id="wl-anonymous">
+            匿名で登録する（誰が登録したか他の人には表示されません）
+          </label>
+          <button id="btn-add-wish" class="btn-wish rounded-full px-4 py-1.5 text-sm">登録する</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <div class="flex gap-1.5" id="filter-mine">
+            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+            <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
+          </div>
+          <div class="flex gap-1.5" id="filter-status">
+            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+            <button data-value="unvisited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">未訪問</button>
+            <button data-value="visited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">訪問済み</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- メイン -->
   <main class="flex-1 max-w-7xl w-full mx-auto md:flex md:gap-4 px-4 py-4">
     <section class="md:w-[46%] md:overflow-y-auto md:max-h-[calc(100vh-140px)]">
       <p id="result-count" class="text-xs text-[var(--ink)]/60 mb-2 px-1"></p>
       <div id="list" class="flex flex-col gap-3"></div>
-      <div id="empty-state" class="hidden text-center py-16 text-sm text-[var(--ink)]/60">
-        条件に合うお店が見つかりませんでした。<br>絞り込み条件を減らして、もう一度お試しください。
-      </div>
+      <div id="empty-state" class="hidden text-center py-16 text-sm text-[var(--ink)]/60"></div>
     </section>
     <section id="map-pane" class="md:w-[54%] mt-4 md:mt-0">
       <div id="map" class="w-full h-[320px] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
     </section>
   </main>
 
-  <!-- お店 追加/編集 モーダル -->
+  <!-- お店 追加/編集 モーダル（実際に行って良かった店） -->
   <dialog id="store-dialog" class="w-[92vw] max-w-lg">
     <form method="dialog" id="store-form" class="p-4 space-y-2 max-h-[85vh] overflow-y-auto">
       <h2 id="store-dialog-title" class="font-bold text-lg mb-2">実際に行って良かった店を登録</h2>
@@ -126,7 +179,10 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { GENRES, SCENES, AREA_TREE } from "./constants.js";
-    import { GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID } from "./firebase-init.js";
+    import {
+      GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID
+    } from "./firebase-init.js";
     import emailjs from "https://esm.run/@emailjs/browser";
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
@@ -151,7 +207,7 @@
     }
 
     async function changeNickname(){
-      const next = prompt("表示名（口コミに表示される名前）を入力してください", currentNickname || "");
+      const next = prompt("表示名（口コミ・行ってみたい店リストに表示される名前）を入力してください", currentNickname || "");
       if(!next) return;
       await updateDoc(doc(db, "users", currentUser.uid), { displayName: next });
       currentNickname = next;
@@ -167,7 +223,6 @@
       const btnAdd = document.getElementById("btn-add-store");
       if(currentUser){
         box.innerHTML = `
-          <a href="wishlist.html" class="underline underline-offset-2">行ってみたい店リスト</a>
           <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
@@ -179,6 +234,7 @@
         document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
         btnAdd.classList.add("hidden");
       }
+      renderWishlistAuthState();
     }
 
     onAuthStateChanged(auth, async (user)=>{
@@ -191,12 +247,54 @@
         currentRole = "anonymous"; currentNickname = "";
       }
       renderAuthArea();
-      applyFilters(); // カード内の編集ボタン表示を更新するため再描画
-      checkPromoteFromWishlist();
+      if(viewMode === "official") applyFilters();
+      else if(currentUser) loadWishlist();
     });
 
     // ---------------------------------------------------------------
-    // 検索・絞り込み状態（すべてプルダウンの単一選択。変更したら即反映）
+    // モード切り替え（実際に行って良かった店 ／ 行ってみたい店）
+    // ---------------------------------------------------------------
+    let viewMode = "official";
+    function switchMode(mode){
+      viewMode = mode;
+      document.querySelectorAll(".mode-tab").forEach(t=> t.dataset.active = (t.dataset.mode === mode));
+      document.getElementById("official-controls").classList.toggle("hidden", mode !== "official");
+      document.getElementById("wishlist-controls").classList.toggle("hidden", mode !== "wishlist");
+      if(mode === "official"){
+        applyFilters();
+      }else{
+        renderWishlistAuthState();
+        if(currentUser) loadWishlist();
+      }
+    }
+    document.getElementById("tab-official").addEventListener("click", ()=> switchMode("official"));
+    document.getElementById("tab-wishlist").addEventListener("click", ()=> switchMode("wishlist"));
+
+    function renderWishlistAuthState(){
+      const loginBox = document.getElementById("wishlist-login-required");
+      const formArea = document.getElementById("wishlist-form-area");
+      if(viewMode !== "wishlist") return;
+      if(currentUser){
+        loginBox.classList.add("hidden");
+        formArea.classList.remove("hidden");
+      }else{
+        loginBox.classList.remove("hidden");
+        formArea.classList.add("hidden");
+        document.getElementById("list").innerHTML = "";
+        document.getElementById("result-count").textContent = "";
+        document.getElementById("empty-state").classList.add("hidden");
+      }
+    }
+    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+
+    // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・メール通知リンクからの遷移用）は自動でタブを切替
+    if(new URLSearchParams(window.location.search).get("mode") === "wishlist"){
+      switchMode("wishlist");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    // ---------------------------------------------------------------
+    // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
     const state = { pref:"", area:"", genre:"", scene:"", keyword:"" };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
@@ -270,15 +368,18 @@
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
         return true;
       });
-      renderList(filtered); renderMarkers(filtered);
+      document.getElementById("empty-state").innerHTML =
+        "条件に合うお店が見つかりませんでした。<br>絞り込み条件を減らして、もう一度お試しください。";
+      renderList(filtered); renderMarkers(filtered, "official");
     }
 
     // ---------------------------------------------------------------
-    // 一覧描画（口コミ・編集/削除ボタン含む）
+    // 一覧描画（実際に行って良かった店：口コミ・編集/削除ボタン含む）
     // ---------------------------------------------------------------
     function starString(n){ return "★".repeat(n) + "☆".repeat(5-n); }
 
     function renderList(items){
+      if(viewMode !== "official") return;
       const list = document.getElementById("list"); const empty = document.getElementById("empty-state");
       document.getElementById("result-count").textContent = `${items.length}件のお店`;
       list.innerHTML = ""; empty.classList.toggle("hidden", items.length>0);
@@ -409,7 +510,7 @@
     }
 
     // ---------------------------------------------------------------
-    // お店 追加・編集モーダル
+    // お店 追加・編集モーダル（実際に行って良かった店）
     // ---------------------------------------------------------------
     const dialog = document.getElementById("store-dialog");
     function fillStaticFormOptions(){
@@ -425,22 +526,25 @@
       document.getElementById("sf-pref").value = store?.prefecture || "";
       document.getElementById("sf-city").value = store?.city || "";
       document.getElementById("sf-area").value = store?.area || "";
-      document.getElementById("sf-address").value = store?.address || "";
+      document.getElementById("sf-address").value = store?.address || prefill?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
       document.getElementById("sf-url").value = store?.url || prefill?.url || "";
       document.getElementById("sf-status").textContent = prefill
-        ? "行ってみたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を入力してください。"
+        ? "行ってみたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を確認・入力してください。"
         : "";
       const selectedScenes = new Set(store?.scenes || []);
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
+      switchMode("official");
       dialog.showModal();
     }
     const typeDialog = document.getElementById("type-dialog");
     document.getElementById("btn-add-store").addEventListener("click", ()=> typeDialog.showModal());
     document.getElementById("type-cancel").addEventListener("click", ()=> typeDialog.close());
     document.getElementById("type-wishlist").addEventListener("click", ()=>{
-      window.location.href = "wishlist.html";
+      typeDialog.close();
+      switchMode("wishlist");
+      document.getElementById("wl-name")?.focus();
     });
     document.getElementById("type-official").addEventListener("click", ()=>{
       typeDialog.close();
@@ -452,28 +556,20 @@
     });
     document.getElementById("sf-cancel").addEventListener("click", ()=> dialog.close());
 
-    // 行ってみたい店リストから「正式に登録する」で遷移してきた場合、権限があればフォームを事前入力して開く
-    function checkPromoteFromWishlist(){
-      const params = new URLSearchParams(window.location.search);
-      const promoteName = params.get("promoteName");
-      if(!promoteName) return;
-      if(currentRole !== "owner" && currentRole !== "editor"){
-        alert("お店の正式登録には編集者以上の権限が必要です。");
-      }else{
-        openStoreModal(null, {
-          name: promoteName,
-          memo: params.get("promoteMemo") || "",
-          url: params.get("promoteUrl") || "",
-        });
-      }
-      // URLをきれいに戻す（再読み込み時に再度モーダルが開かないように）
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-
     async function nextCurationNo(){
       const snap = await getDocs(query(collection(db,"restaurants"), orderBy("curationNo","desc"), limit(1)));
       if(snap.empty) return 1;
       return (snap.docs[0].data().curationNo || 0) + 1;
+    }
+
+    function geocodeAddress(address){
+      return new Promise(resolve=>{
+        if(!geocoder || !address){ resolve(null); return; }
+        geocoder.geocode({address}, (results,status)=>{
+          if(status==="OK" && results[0]){ const l=results[0].geometry.location; resolve({lat:l.lat(), lng:l.lng()}); }
+          else resolve(null);
+        });
+      });
     }
 
     document.getElementById("store-form").addEventListener("submit", async (e)=>{
@@ -483,13 +579,7 @@
       const id = document.getElementById("sf-id").value;
       const address = document.getElementById("sf-address").value.trim();
       const scenes = [...document.querySelectorAll('#sf-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
-      const geo = await new Promise(resolve=>{
-        if(!geocoder){ resolve(null); return; }
-        geocoder.geocode({address}, (results,status)=>{
-          if(status==="OK" && results[0]){ const l=results[0].geometry.location; resolve({lat:l.lat(), lng:l.lng()}); }
-          else resolve(null);
-        });
-      });
+      const geo = await geocodeAddress(address);
       const data = {
         name: document.getElementById("sf-name").value.trim(),
         genre: document.getElementById("sf-genre").value,
@@ -516,7 +606,190 @@
     });
 
     // ---------------------------------------------------------------
-    // 地図・データ読み込み
+    // 行ってみたい店
+    // ---------------------------------------------------------------
+    let allWishItems = [];
+    const wlFilter = { mine: "all", status: "all" };
+
+    function setupTabGroup(containerId, key, cb){
+      const box = document.getElementById(containerId);
+      box.querySelectorAll(".wl-tab").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          box.querySelectorAll(".wl-tab").forEach(b=> b.dataset.active = "false");
+          btn.dataset.active = "true";
+          wlFilter[key] = btn.dataset.value;
+          cb();
+        });
+      });
+    }
+    setupTabGroup("filter-mine", "mine", ()=> applyWishlistFilter());
+    setupTabGroup("filter-status", "status", ()=> applyWishlistFilter());
+
+    document.getElementById("btn-add-wish").addEventListener("click", async ()=>{
+      const name = document.getElementById("wl-name").value.trim();
+      if(!name){ alert("お店の名前を入力してください"); return; }
+      const memo = document.getElementById("wl-memo").value.trim();
+      const address = document.getElementById("wl-address").value.trim();
+      const referenceUrl = document.getElementById("wl-url").value.trim();
+      const anonymous = document.getElementById("wl-anonymous").checked;
+      const btn = document.getElementById("btn-add-wish");
+      btn.disabled = true;
+      try{
+        const geo = await geocodeAddress(address);
+        await addDoc(collection(db,"wishlist"), {
+          name, memo, referenceUrl, address,
+          lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
+          addedBy: currentUser.uid,
+          addedByNickname: currentNickname,
+          anonymous,
+          status: "unvisited",
+          impression: "", impressionByNickname: "",
+          createdAt: new Date().toISOString(),
+        });
+        document.getElementById("wl-name").value = "";
+        document.getElementById("wl-memo").value = "";
+        document.getElementById("wl-address").value = "";
+        document.getElementById("wl-url").value = "";
+        document.getElementById("wl-anonymous").checked = false;
+        loadWishlist();
+      }catch(err){
+        console.error(err);
+        alert(`登録に失敗しました。\n\nエラー内容：${err.code || err.message}\n\nFirestoreのルールが最新版になっているか確認してください。`);
+      }finally{
+        btn.disabled = false;
+      }
+    });
+
+    async function loadWishlist(){
+      try{
+        const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
+        allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        applyWishlistFilter();
+      }catch(e){
+        console.error(e);
+        document.getElementById("list").innerHTML =
+          `<p class="text-xs text-[var(--shu)]">一覧の読み込みに失敗しました（${e.code || e.message}）。Firestoreのルールが最新版になっているか確認してください。</p>`;
+      }
+    }
+
+    function applyWishlistFilter(){
+      if(viewMode !== "wishlist") return;
+      const filtered = allWishItems.filter(item=>{
+        if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
+        if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
+        return true;
+      });
+      document.getElementById("empty-state").textContent = "条件に合う登録がありません。";
+      renderWishlistList(filtered);
+      renderMarkers(filtered, "wishlist");
+    }
+
+    function renderWishlistList(items){
+      const list = document.getElementById("list"); const empty = document.getElementById("empty-state");
+      document.getElementById("result-count").textContent = `${items.length}件`;
+      list.innerHTML = ""; empty.classList.toggle("hidden", items.length>0);
+
+      items.forEach(item=>{
+        const isMine = currentUser && item.addedBy === currentUser.uid;
+        const requesterLabel = item.anonymous ? "（匿名）" : `${item.addedByNickname || "名無しさん"} さんが登録`;
+        const canDelete = isMine || currentRole === "owner" || currentRole === "editor";
+        const visited = item.status === "visited";
+        const mapQuery = (item.lat && item.lng) ? `${item.lat},${item.lng}` : (item.address || item.name);
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+
+        const card = document.createElement("article");
+        card.className = "store-card wish-card bg-white border border-[var(--line)] rounded-xl p-3";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}</h3>
+              ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
+              ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
+              <div class="flex flex-wrap gap-3 mt-1">
+                ${item.lat && item.lng ? `<a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">Googleマップで見る</a>` : ""}
+                ${item.referenceUrl ? `<a href="${item.referenceUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">参考リンクを見る</a>` : ""}
+              </div>
+              <p class="text-[10px] text-[var(--ink)]/40 mt-1">${requesterLabel}${isMine && item.anonymous ? "（自分の登録です）" : ""}</p>
+            </div>
+            ${canDelete ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2 shrink-0">削除</button>` : ""}
+          </div>
+          ${visited ? `
+            <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
+              <div><span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}</div>
+              ${(currentRole === "owner" || currentRole === "editor") ? `
+                <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">正式にお店リストへ登録する</button>
+              ` : ""}
+            </div>
+          ` : `
+            <div class="mt-2 pt-2 border-t border-[var(--line)] flex gap-2" data-role="impression-form">
+              <input type="text" placeholder="行ってきた感想を書く" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="impression-input">
+              <button class="btn-wish text-xs rounded-full px-3" data-role="impression-submit">投稿</button>
+            </div>
+          `}
+        `;
+        if(canDelete){
+          card.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
+            if(!confirm(`「${item.name}」をリストから削除します。よろしいですか？`)) return;
+            await deleteDoc(doc(db,"wishlist",item.id));
+            loadWishlist();
+          });
+        }
+        if(!visited){
+          card.querySelector('[data-role="impression-submit"]').addEventListener("click", async ()=>{
+            const input = card.querySelector('[data-role="impression-input"]');
+            const text = input.value.trim();
+            if(!text) return;
+            await updateDoc(doc(db,"wishlist",item.id), {
+              status: "visited", impression: text, impressionByNickname: currentNickname,
+            });
+            notifyWishlistRegistrant(item, text);
+            loadWishlist();
+          });
+        }
+        if(item.lat && item.lng){
+          card.addEventListener("click", (e)=>{
+            if(e.target.closest("a,button,input")) return;
+            focusWishItem(item);
+          });
+        }
+        if(visited && (currentRole === "owner" || currentRole === "editor")){
+          card.querySelector('[data-role="promote"]')?.addEventListener("click", ()=>{
+            const memo = [item.memo, `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}`]
+              .filter(Boolean).join("\n");
+            openStoreModal(null, { name: item.name, memo, url: item.referenceUrl || "", address: item.address || "" });
+          });
+        }
+        list.appendChild(card);
+      });
+    }
+
+    async function notifyWishlistRegistrant(item, impressionText){
+      if(!item.addedBy || item.addedBy === currentUser.uid) return;
+      try{
+        const userSnap = await getDoc(doc(db,"users",item.addedBy));
+        if(!userSnap.exists()) return;
+        const toEmail = userSnap.data().email;
+        if(!toEmail) return;
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, {
+          to_email: toEmail, store_name: item.name,
+          commenter_name: currentNickname, impression_text: impressionText,
+        });
+      }catch(e){
+        console.error("行ってみたい店リストの通知メール送信に失敗しました", e);
+      }
+    }
+
+    function focusWishItem(item){
+      if(item.lat && item.lng && map){
+        map.panTo({lat:item.lat, lng:item.lng}); map.setZoom(16);
+        const marker = markers[item.id];
+        if(marker){ infoWindow.setContent(`<strong>${item.name}</strong>（行ってみたい店）`); infoWindow.open(map, marker); }
+      }
+      if(window.innerWidth < 768) document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
+    }
+
+    // ---------------------------------------------------------------
+    // 地図・データ読み込み（共通）
     // ---------------------------------------------------------------
     function focusStore(s){
       document.querySelectorAll(".store-card").forEach(el=> el.dataset.selected = (el.dataset.id===s.id));
@@ -534,12 +807,17 @@
       geocoder = new google.maps.Geocoder();
       loadStoresAndRefresh(true);
     };
-    function renderMarkers(items){
+    // type: "official"（赤・標準ピン）または "wishlist"（青ピン）で色分け
+    function renderMarkers(items, type){
       Object.values(markers).forEach(m=> m.setMap(null)); markers = {};
       items.forEach(s=>{
         if(!s.lat || !s.lng) return;
-        const marker = new google.maps.Marker({ position:{lat:s.lat,lng:s.lng}, map, title:s.name });
-        marker.addListener("click", ()=> focusStore(s));
+        const opts = { position:{lat:s.lat,lng:s.lng}, map, title:s.name };
+        if(type === "wishlist"){
+          opts.icon = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+        }
+        const marker = new google.maps.Marker(opts);
+        marker.addListener("click", ()=> type === "wishlist" ? focusWishItem(s) : focusStore(s));
         markers[s.id] = marker;
       });
     }
@@ -547,7 +825,7 @@
       const snap = await getDocs(collection(db,"restaurants"));
       allStores = snap.docs.map(d=>({id:d.id, ...d.data()}));
       if(first){ restoreState(); renderFilterBar(); }
-      applyFilters();
+      if(viewMode === "official") applyFilters();
     }
 
     fillStaticFormOptions();
