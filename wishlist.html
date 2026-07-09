@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>おかログ｜行きたい店リスト</title>
+<title>おかログ｜行ってみたい店リスト</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
     <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-3">
         <a href="index.html"><img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg"></a>
-        <h1 class="text-base md:text-lg font-bold">行きたい店リスト</h1>
+        <h1 class="text-base md:text-lg font-bold">行ってみたい店リスト</h1>
       </div>
       <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">検索画面に戻る</a>
     </div>
@@ -35,7 +35,7 @@
   <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6 space-y-6">
 
     <div id="login-required" class="hidden bg-white border border-[var(--line)] rounded-xl p-6 text-center space-y-3">
-      <p class="text-sm">行きたい店リストの閲覧・登録には、Googleログインが必要です。</p>
+      <p class="text-sm">行ってみたい店リストの閲覧・登録には、Googleログインが必要です。</p>
       <button id="btn-login" class="btn-primary rounded-full px-4 py-2 text-sm">Googleでログイン</button>
     </div>
 
@@ -220,7 +220,7 @@
           impression_text: impressionText,
         });
       }catch(e){
-        console.error("行きたい店リストの通知メール送信に失敗しました", e);
+        console.error("行ってみたい店リストの通知メール送信に失敗しました", e);
       }
     }
   </script>

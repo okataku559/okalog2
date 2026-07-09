@@ -50,7 +50,7 @@
         <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
-        <button id="btn-add-store" class="hidden btn-primary rounded-full px-3 py-1.5 text-sm shrink-0">＋ お店を追加</button>
+        <button id="btn-add-store" class="hidden btn-primary rounded-full px-3 py-1.5 text-sm shrink-0">＋ お店を登録する</button>
       </div>
     </div>
   </section>
@@ -73,7 +73,7 @@
   <!-- お店 追加/編集 モーダル -->
   <dialog id="store-dialog" class="w-[92vw] max-w-lg">
     <form method="dialog" id="store-form" class="p-4 space-y-2 max-h-[85vh] overflow-y-auto">
-      <h2 id="store-dialog-title" class="font-bold text-lg mb-2">お店を追加</h2>
+      <h2 id="store-dialog-title" class="font-bold text-lg mb-2">実際に行って良かった店を登録</h2>
       <input type="hidden" id="sf-id">
       <label class="block text-xs font-bold">店名<input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
       <label class="block text-xs font-bold">ジャンル
@@ -100,6 +100,22 @@
         <button type="submit" id="sf-submit" class="text-sm px-4 py-1.5 rounded-full btn-primary">保存する</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- お店の登録タイプ選択ダイアログ -->
+  <dialog id="type-dialog" class="w-[92vw] max-w-sm">
+    <div class="p-4 space-y-3">
+      <h2 class="font-bold text-base">どちらで登録しますか？</h2>
+      <button id="type-wishlist" class="w-full text-left border border-[var(--line)] rounded-lg p-3 hover:bg-[var(--paper-dim)]">
+        <span class="font-bold text-sm">行ってみたい店</span>
+        <p class="text-xs text-[var(--ink)]/60 mt-1">まだ行ったことがないけれど気になっているお店。誰でも登録できます。あとで実際に行った人が感想を書き込めます。</p>
+      </button>
+      <button id="type-official" class="w-full text-left border border-[var(--line)] rounded-lg p-3 hover:bg-[var(--paper-dim)]">
+        <span class="font-bold text-sm">実際に行って良かった店</span>
+        <p class="text-xs text-[var(--ink)]/60 mt-1">実際に行って、本当に良かったお店。検索・地図に正式に載ります（編集者・オーナーのみ登録できます）。</p>
+      </button>
+      <button type="button" id="type-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)] w-full">キャンセル</button>
+    </div>
   </dialog>
 
   <script type="module">
@@ -151,13 +167,13 @@
       const btnAdd = document.getElementById("btn-add-store");
       if(currentUser){
         box.innerHTML = `
-          <a href="wishlist.html" class="underline underline-offset-2">行きたい店リスト</a>
+          <a href="wishlist.html" class="underline underline-offset-2">行ってみたい店リスト</a>
           <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
         document.getElementById("btn-nickname").addEventListener("click", changeNickname);
         document.getElementById("btn-logout").addEventListener("click", ()=> signOut(auth));
-        btnAdd.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
+        btnAdd.classList.remove("hidden"); // ログインしていれば誰でも登録の入口を見せる（種類はダイアログで選ぶ）
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
         document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
@@ -402,7 +418,7 @@
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
     }
     function openStoreModal(store, prefill){
-      document.getElementById("store-dialog-title").textContent = store ? "お店を編集" : "お店を追加";
+      document.getElementById("store-dialog-title").textContent = store ? "お店を編集" : "実際に行って良かった店を登録";
       document.getElementById("sf-id").value = store?.id || "";
       document.getElementById("sf-name").value = store?.name || prefill?.name || "";
       document.getElementById("sf-genre").value = store?.genre || GENRES[0];
@@ -414,16 +430,29 @@
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
       document.getElementById("sf-url").value = store?.url || prefill?.url || "";
       document.getElementById("sf-status").textContent = prefill
-        ? "行きたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を入力してください。"
+        ? "行ってみたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を入力してください。"
         : "";
       const selectedScenes = new Set(store?.scenes || []);
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
       dialog.showModal();
     }
-    document.getElementById("btn-add-store").addEventListener("click", ()=> openStoreModal(null));
+    const typeDialog = document.getElementById("type-dialog");
+    document.getElementById("btn-add-store").addEventListener("click", ()=> typeDialog.showModal());
+    document.getElementById("type-cancel").addEventListener("click", ()=> typeDialog.close());
+    document.getElementById("type-wishlist").addEventListener("click", ()=>{
+      window.location.href = "wishlist.html";
+    });
+    document.getElementById("type-official").addEventListener("click", ()=>{
+      typeDialog.close();
+      if(currentRole === "owner" || currentRole === "editor"){
+        openStoreModal(null);
+      }else{
+        alert("「実際に行って良かった店」の正式登録は、編集者・オーナーのみ行えます。\nまずは「行ってみたい店」として登録し、確認をお待ちください。");
+      }
+    });
     document.getElementById("sf-cancel").addEventListener("click", ()=> dialog.close());
 
-    // 行きたい店リストから「正式に登録する」で遷移してきた場合、権限があればフォームを事前入力して開く
+    // 行ってみたい店リストから「正式に登録する」で遷移してきた場合、権限があればフォームを事前入力して開く
     function checkPromoteFromWishlist(){
       const params = new URLSearchParams(window.location.search);
       const promoteName = params.get("promoteName");
