@@ -151,6 +151,7 @@
       const btnAdd = document.getElementById("btn-add-store");
       if(currentUser){
         box.innerHTML = `
+          <a href="wishlist.html" class="underline underline-offset-2">行きたい店リスト</a>
           <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
@@ -175,6 +176,7 @@
       }
       renderAuthArea();
       applyFilters(); // カード内の編集ボタン表示を更新するため再描画
+      checkPromoteFromWishlist();
     });
 
     // ---------------------------------------------------------------
@@ -399,25 +401,45 @@
       const sceneBox = document.getElementById("sf-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
     }
-    function openStoreModal(store){
+    function openStoreModal(store, prefill){
       document.getElementById("store-dialog-title").textContent = store ? "お店を編集" : "お店を追加";
       document.getElementById("sf-id").value = store?.id || "";
-      document.getElementById("sf-name").value = store?.name || "";
+      document.getElementById("sf-name").value = store?.name || prefill?.name || "";
       document.getElementById("sf-genre").value = store?.genre || GENRES[0];
       document.getElementById("sf-pref").value = store?.prefecture || "";
       document.getElementById("sf-city").value = store?.city || "";
       document.getElementById("sf-area").value = store?.area || "";
       document.getElementById("sf-address").value = store?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
-      document.getElementById("sf-features").value = store?.features || "";
-      document.getElementById("sf-url").value = store?.url || "";
-      document.getElementById("sf-status").textContent = "";
+      document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
+      document.getElementById("sf-url").value = store?.url || prefill?.url || "";
+      document.getElementById("sf-status").textContent = prefill
+        ? "行きたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を入力してください。"
+        : "";
       const selectedScenes = new Set(store?.scenes || []);
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
       dialog.showModal();
     }
     document.getElementById("btn-add-store").addEventListener("click", ()=> openStoreModal(null));
     document.getElementById("sf-cancel").addEventListener("click", ()=> dialog.close());
+
+    // 行きたい店リストから「正式に登録する」で遷移してきた場合、権限があればフォームを事前入力して開く
+    function checkPromoteFromWishlist(){
+      const params = new URLSearchParams(window.location.search);
+      const promoteName = params.get("promoteName");
+      if(!promoteName) return;
+      if(currentRole !== "owner" && currentRole !== "editor"){
+        alert("お店の正式登録には編集者以上の権限が必要です。");
+      }else{
+        openStoreModal(null, {
+          name: promoteName,
+          memo: params.get("promoteMemo") || "",
+          url: params.get("promoteUrl") || "",
+        });
+      }
+      // URLをきれいに戻す（再読み込み時に再度モーダルが開かないように）
+      window.history.replaceState({}, "", window.location.pathname);
+    }
 
     async function nextCurationNo(){
       const snap = await getDocs(query(collection(db,"restaurants"), orderBy("curationNo","desc"), limit(1)));

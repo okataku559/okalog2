@@ -159,8 +159,11 @@
             ${canDelete ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2 shrink-0">削除</button>` : ""}
           </div>
           ${visited ? `
-            <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs">
-              <span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}
+            <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
+              <div><span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}</div>
+              ${(currentRole === "owner" || currentRole === "editor") ? `
+                <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">正式にお店リストへ登録する</button>
+              ` : ""}
             </div>
           ` : `
             <div class="mt-2 pt-2 border-t border-[var(--line)] flex gap-2" data-role="impression-form">
@@ -186,6 +189,16 @@
             });
             notifyRegistrant(item, text);
             loadWishlist();
+          });
+        }
+        if(visited && (currentRole === "owner" || currentRole === "editor")){
+          card.querySelector('[data-role="promote"]')?.addEventListener("click", ()=>{
+            const memo = [item.memo, `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}`]
+              .filter(Boolean).join("\n");
+            const params = new URLSearchParams({
+              promoteName: item.name, promoteMemo: memo, promoteUrl: item.referenceUrl || "",
+            });
+            window.location.href = `index.html?${params.toString()}`;
           });
         }
         box.appendChild(card);
