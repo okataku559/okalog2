@@ -81,7 +81,8 @@
       </div>
       <div id="wishlist-form-area" class="space-y-3">
         <div class="bg-white border border-[var(--line)] rounded-xl p-3 space-y-2">
-          <p class="font-bold text-xs">＋ 行ってみたいお店を登録する</p>
+          <p id="wl-form-title" class="font-bold text-xs">＋ 行ってみたいお店を登録する</p>
+          <input type="hidden" id="wl-edit-id">
           <input id="wl-name" type="text" placeholder="お店の名前"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
           <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
@@ -94,7 +95,10 @@
             <input type="checkbox" id="wl-anonymous">
             匿名で登録する（誰が登録したか他の人には表示されません）
           </label>
-          <button id="btn-add-wish" class="btn-wish rounded-full px-4 py-1.5 text-sm">登録する</button>
+          <div class="flex gap-2">
+            <button id="btn-add-wish" class="btn-wish rounded-full px-4 py-1.5 text-sm">登録する</button>
+            <button id="btn-wl-cancel-edit" class="hidden text-xs px-3 py-1.5 rounded-full border border-[var(--line)]">編集をキャンセル</button>
+          </div>
         </div>
         <div class="flex flex-wrap gap-2">
           <div class="flex gap-1.5" id="filter-mine">
@@ -625,9 +629,36 @@
     setupTabGroup("filter-mine", "mine", ()=> applyWishlistFilter());
     setupTabGroup("filter-status", "status", ()=> applyWishlistFilter());
 
+    function resetWishlistForm(){
+      document.getElementById("wl-edit-id").value = "";
+      document.getElementById("wl-name").value = "";
+      document.getElementById("wl-memo").value = "";
+      document.getElementById("wl-address").value = "";
+      document.getElementById("wl-url").value = "";
+      document.getElementById("wl-anonymous").checked = false;
+      document.getElementById("wl-form-title").textContent = "＋ 行ってみたいお店を登録する";
+      document.getElementById("btn-add-wish").textContent = "登録する";
+      document.getElementById("btn-wl-cancel-edit").classList.add("hidden");
+    }
+    function startEditWishItem(item){
+      document.getElementById("wl-edit-id").value = item.id;
+      document.getElementById("wl-name").value = item.name || "";
+      document.getElementById("wl-memo").value = item.memo || "";
+      document.getElementById("wl-address").value = item.address || "";
+      document.getElementById("wl-url").value = item.referenceUrl || "";
+      document.getElementById("wl-anonymous").checked = !!item.anonymous;
+      document.getElementById("wl-form-title").textContent = "「" + item.name + "」を編集する";
+      document.getElementById("btn-add-wish").textContent = "更新する";
+      document.getElementById("btn-wl-cancel-edit").classList.remove("hidden");
+      document.getElementById("wishlist-form-area").scrollIntoView({behavior:"smooth", block:"start"});
+      document.getElementById("wl-name").focus();
+    }
+    document.getElementById("btn-wl-cancel-edit").addEventListener("click", resetWishlistForm);
+
     document.getElementById("btn-add-wish").addEventListener("click", async ()=>{
       const name = document.getElementById("wl-name").value.trim();
       if(!name){ alert("お店の名前を入力してください"); return; }
+      const editId = document.getElementById("wl-edit-id").value;
       const memo = document.getElementById("wl-memo").value.trim();
       const address = document.getElementById("wl-address").value.trim();
       const referenceUrl = document.getElementById("wl-url").value.trim();
@@ -636,25 +667,29 @@
       btn.disabled = true;
       try{
         const geo = await geocodeAddress(address);
-        await addDoc(collection(db,"wishlist"), {
-          name, memo, referenceUrl, address,
-          lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
-          addedBy: currentUser.uid,
-          addedByNickname: currentNickname,
-          anonymous,
-          status: "unvisited",
-          impression: "", impressionByNickname: "",
-          createdAt: new Date().toISOString(),
-        });
-        document.getElementById("wl-name").value = "";
-        document.getElementById("wl-memo").value = "";
-        document.getElementById("wl-address").value = "";
-        document.getElementById("wl-url").value = "";
-        document.getElementById("wl-anonymous").checked = false;
+        if(editId){
+          await updateDoc(doc(db,"wishlist",editId), {
+            name, memo, referenceUrl, address,
+            lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
+            anonymous,
+          });
+        }else{
+          await addDoc(collection(db,"wishlist"), {
+            name, memo, referenceUrl, address,
+            lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
+            addedBy: currentUser.uid,
+            addedByNickname: currentNickname,
+            anonymous,
+            status: "unvisited",
+            impression: "", impressionByNickname: "",
+            createdAt: new Date().toISOString(),
+          });
+        }
+        resetWishlistForm();
         loadWishlist();
       }catch(err){
         console.error(err);
-        alert(`登録に失敗しました。\n\nエラー内容：${err.code || err.message}\n\nFirestoreのルールが最新版になっているか確認してください。`);
+        alert(`保存に失敗しました。\n\nエラー内容：${err.code || err.message}\n\nFirestoreのルールが最新版になっているか確認してください。`);
       }finally{
         btn.disabled = false;
       }
@@ -692,7 +727,7 @@
       items.forEach(item=>{
         const isMine = currentUser && item.addedBy === currentUser.uid;
         const requesterLabel = item.anonymous ? "（匿名）" : `${item.addedByNickname || "名無しさん"} さんが登録`;
-        const canDelete = isMine || currentRole === "owner" || currentRole === "editor";
+        const canManage = isMine || currentRole === "owner"; // 編集・削除は「登録した人」と「オーナー」のみ
         const visited = item.status === "visited";
         const mapQuery = (item.lat && item.lng) ? `${item.lat},${item.lng}` : (item.address || item.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
@@ -711,7 +746,10 @@
               </div>
               <p class="text-[10px] text-[var(--ink)]/40 mt-1">${requesterLabel}${isMine && item.anonymous ? "（自分の登録です）" : ""}</p>
             </div>
-            ${canDelete ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2 shrink-0">削除</button>` : ""}
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              ${canManage ? `<button data-role="edit-wish" class="text-xs text-[var(--wish)] underline underline-offset-2">編集</button>` : ""}
+              ${canManage ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2">削除</button>` : ""}
+            </div>
           </div>
           ${visited ? `
             <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
@@ -727,7 +765,8 @@
             </div>
           `}
         `;
-        if(canDelete){
+        if(canManage){
+          card.querySelector('[data-role="edit-wish"]').addEventListener("click", ()=> startEditWishItem(item));
           card.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
             if(!confirm(`「${item.name}」をリストから削除します。よろしいですか？`)) return;
             await deleteDoc(doc(db,"wishlist",item.id));
