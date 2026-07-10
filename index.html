@@ -755,13 +755,18 @@
             <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
               <div><span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}</div>
               ${(currentRole === "owner" || currentRole === "editor") ? `
-                <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">正式にお店リストへ登録する</button>
+                <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">実際に行って良かった店として登録する</button>
               ` : ""}
             </div>
           ` : `
-            <div class="mt-2 pt-2 border-t border-[var(--line)] flex gap-2" data-role="impression-form">
-              <input type="text" placeholder="行ってきた感想を書く" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="impression-input">
-              <button class="btn-wish text-xs rounded-full px-3" data-role="impression-submit">投稿</button>
+            <div class="mt-2 pt-2 border-t border-[var(--line)] space-y-2">
+              <div class="flex gap-2" data-role="impression-form">
+                <input type="text" placeholder="行ってきた感想を書く" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="impression-input">
+                <button class="btn-wish text-xs rounded-full px-3" data-role="impression-submit">投稿</button>
+              </div>
+              ${(currentRole === "owner" || currentRole === "editor") ? `
+                <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">実際に行って良かった店として登録する</button>
+              ` : ""}
             </div>
           `}
         `;
@@ -791,9 +796,9 @@
             focusWishItem(item);
           });
         }
-        if(visited && (currentRole === "owner" || currentRole === "editor")){
+        if(currentRole === "owner" || currentRole === "editor"){
           card.querySelector('[data-role="promote"]')?.addEventListener("click", ()=>{
-            const memo = [item.memo, `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}`]
+            const memo = [item.memo, visited ? `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}` : ""]
               .filter(Boolean).join("\n");
             openStoreModal(null, { name: item.name, memo, url: item.referenceUrl || "", address: item.address || "" });
           });
