@@ -980,6 +980,8 @@
     document.getElementById("btn-wl-cancel-edit").addEventListener("click", resetWishlistForm);
 
     async function notifySharedRecipients(storeName, newEmails){
+      // EmailJSの共有用テンプレートが未設定（プレースホルダーのまま）の場合は何もしない
+      if(!EMAILJS_SHARE_TEMPLATE_ID || EMAILJS_SHARE_TEMPLATE_ID.includes("ここに")) return;
       for(const email of newEmails){
         try{
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_SHARE_TEMPLATE_ID, {
