@@ -98,13 +98,27 @@
         <p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><b>おすすめポイント：</b>編集者・オーナーが書いたコメント</p>
         <p class="text-xs text-[var(--ink)]/60 mt-2">住所</p>
         <div class="flex gap-3 mt-1 text-xs" style="color:var(--shu)">
-          <span class="underline">Googleマップで見る</span><span class="underline">お店のサイト・予約はこちら</span>
+          <span class="underline">Googleマップで見る</span><span class="underline">食べログ</span><span class="underline">Instagram</span>
         </div>
         <div class="flex gap-3 mt-2 text-xs text-[var(--ink)]/70"><span class="underline">口コミを見る・書く</span></div>
       </div>
       <p class="text-xs text-[var(--ink)]/70">
         カードをタップすると、右側（スマホでは下）の地図が該当のお店にジャンプします。
         「口コミを見る・書く」は、ログインしていれば誰でも書き込めます（ニックネーム表示・文字のみ）。
+      </p>
+
+      <p class="text-sm font-bold mb-2 mt-4">③ 参考リンクは複数登録できます</p>
+      <p class="text-xs text-[var(--ink)]/70">
+        編集者・オーナーがお店を登録・編集するとき、「食べログ」「ホットペッパー」「Instagram」のように
+        <b>種類ごとにラベルを付けて、参考リンクを何個でも追加</b>できます。全体像が分かる情報サイトと、
+        雰囲気が分かるInstagramなど、目的に応じて使い分けられます。
+      </p>
+
+      <p class="text-sm font-bold mb-2 mt-4">④ 重複登録の警告</p>
+      <p class="text-xs text-[var(--ink)]/70">
+        店名や住所を入力すると、既に同じお店が登録されていないか自動でチェックされます。
+        同じ名前・ほぼ同じ場所（半径40m以内）の登録があると警告が出ますが、支店違いなどの場合は
+        そのまま登録して問題ありません（登録がブロックされることはありません）。
       </p>
     </section>
 
@@ -117,34 +131,47 @@
         <div>
           <p class="text-sm font-bold">気になるお店を登録する</p>
           <p class="text-xs text-[var(--ink)]/70 mt-1">
-            「行ってみたい店」タブを開き、店名・メモ・住所（分かる範囲でOK）・参考リンク（Instagramの投稿URLなど）を入力して登録します。
-            住所を入れると地図にも表示されます。<b>「匿名で登録する」</b>にチェックすると、他の人には誰が登録したか分かりません（自分だけは分かります）。
+            「行ってみたい店」タブを開き、店名・メモ・住所（分かる範囲でOK）・参考リンク（食べログ・Instagramなど、複数可）を入力して登録します。
+            住所を入れると地図にも青いピンで表示されます。<b>「匿名で登録する」</b>にチェックすると、他の人には誰が登録したか分かりません（自分だけは分かります）。
           </p>
         </div>
       </div>
       <div class="flex items-start gap-3 mb-3">
         <span class="step-num" style="background:var(--wish); color:#fff;">2</span>
         <div>
+          <p class="text-sm font-bold">気になる友達に共有する（任意）</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            登録・編集フォームの「共有先」で、特定の友達だけを選んで知らせることができます。
+            名前とメールアドレスを入力すれば連絡先として保存され、次回はワンタップで選べます。
+            何人かまとめて選んで「グループ作成」しておけば、次からグループ単位で一括共有できます。
+            共有された相手は、「自分に共有された店」ボタンで自分宛てのものだけをすぐ確認できます。
+          </p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 mb-3">
+        <span class="step-num" style="background:var(--wish); color:#fff;">3</span>
+        <div>
           <p class="text-sm font-bold">誰かが実際に行って、感想を投稿する</p>
           <p class="text-xs text-[var(--ink)]/70 mt-1">
-            ログインしていれば誰でも、行ってみたい店に「感想」を書き込めます。感想を書くと「訪問済み」になり、
-            <b>登録した本人にメールで通知</b>が届きます（匿名で登録していても、本人にはちゃんと届きます）。
+            ログインしていれば誰でも、行ってみたい店に「感想」を書き込めます。感想を書くと「訪問済み」になります。
           </p>
         </div>
       </div>
       <div class="flex items-start gap-3">
-        <span class="step-num" style="background:var(--shu); color:#fff;">3</span>
+        <span class="step-num" style="background:var(--shu); color:#fff;">4</span>
         <div>
           <p class="text-sm font-bold">気に入ったら、正式なお店リストへ</p>
           <p class="text-xs text-[var(--ink)]/70 mt-1">
             編集者・オーナーは、行ってみたい店のカードにある<b>「実際に行って良かった店として登録する」</b>ボタンから、
             店名・メモ・住所・参考リンクの内容を引き継いだまま、正式なお店リストへ昇格登録できます。
+            訪問済み・未訪問どちらの状態でも使えます。
           </p>
         </div>
       </div>
 
       <p class="text-xs text-[var(--ink)]/60 mt-4">
-        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。
+        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。<br>
+        ※「すべて／自分が登録した店／自分に共有された店」「すべて／未訪問／訪問済み」のタブで、見たい範囲を絞り込めます。
       </p>
     </section>
 
