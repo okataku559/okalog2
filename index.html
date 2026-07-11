@@ -101,14 +101,33 @@
           <input type="hidden" id="wl-edit-id">
           <input id="wl-name" type="text" placeholder="お店の名前"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <p id="wl-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
           <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
           <input id="wl-address" type="text" placeholder="住所（任意・分かる範囲でOK。地図に表示されます）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <p id="wl-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
           <div>
             <p class="text-xs font-bold mb-1">参考リンク（食べログ・Instagramなど、複数登録できます）</p>
             <div id="wl-links" class="space-y-1"></div>
             <button type="button" id="wl-links-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ リンクを追加</button>
+          </div>
+          <div class="border border-[var(--line)] rounded-lg p-2 space-y-2">
+            <p class="text-xs font-bold">共有先（任意・選んだ人にメールで通知されます）</p>
+            <div id="wl-share-chips" class="flex flex-wrap gap-1"></div>
+            <div id="wl-contacts-list" class="flex flex-wrap gap-1"></div>
+            <div class="flex flex-wrap gap-1">
+              <input type="text" id="wl-new-contact-nickname" placeholder="名前"
+                     class="w-20 border border-[var(--line)] rounded px-2 py-1 text-xs">
+              <input type="email" id="wl-new-contact-email" placeholder="メールアドレス"
+                     class="flex-1 min-w-[140px] border border-[var(--line)] rounded px-2 py-1 text-xs">
+              <button type="button" id="wl-add-contact-btn" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">連絡先に追加して共有</button>
+            </div>
+            <div class="flex flex-wrap gap-1 items-center pt-1 border-t border-[var(--line)]">
+              <select id="wl-group-select" class="border border-[var(--line)] rounded px-2 py-1 text-xs"></select>
+              <button type="button" id="wl-use-group-btn" class="text-xs underline underline-offset-2 text-[var(--wish)]">グループを共有先に追加</button>
+              <button type="button" id="wl-new-group-btn" class="text-xs underline underline-offset-2 text-[var(--wish)]">今チェック中の人でグループ作成</button>
+            </div>
           </div>
           <label class="flex items-center gap-2 text-xs text-[var(--ink)]/70">
             <input type="checkbox" id="wl-anonymous">
@@ -123,6 +142,7 @@
           <div class="flex gap-1.5" id="filter-mine">
             <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
             <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
+            <button data-value="shared" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分に共有された店</button>
           </div>
           <div class="flex gap-1.5" id="filter-status">
             <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
@@ -152,6 +172,7 @@
       <h2 id="store-dialog-title" class="font-bold text-lg mb-2">実際に行って良かった店を登録</h2>
       <input type="hidden" id="sf-id">
       <label class="block text-xs font-bold">店名<input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+      <p id="sf-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
       <label class="block text-xs font-bold">ジャンル
         <select id="sf-genre" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></select>
       </label>
@@ -161,6 +182,7 @@
       </div>
       <label class="block text-xs font-bold">エリア（例：梅田・北新地・中之島）<input required id="sf-area" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
       <label class="block text-xs font-bold">住所（地図ピンに使われます）<input required id="sf-address" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+      <p id="sf-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
       <label class="block text-xs font-bold">満足度（1〜5）
         <select id="sf-taste" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
           <option value="0">未評価</option><option value="1">1</option><option value="2">2</option>
@@ -213,7 +235,7 @@
     import { GENRES, SCENES, AREA_TREE } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID
+      EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, EMAILJS_SHARE_TEMPLATE_ID
     } from "./firebase-init.js";
     import emailjs from "https://esm.run/@emailjs/browser";
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -306,7 +328,7 @@
       }
       renderAuthArea();
       if(viewMode === "official") applyFilters();
-      else if(currentUser) loadWishlist();
+      else if(currentUser){ loadWishlist(); loadContactsAndGroups(); }
     });
 
     // ---------------------------------------------------------------
@@ -322,7 +344,7 @@
         applyFilters();
       }else{
         renderWishlistAuthState();
-        if(currentUser) loadWishlist();
+        if(currentUser){ loadWishlist(); loadContactsAndGroups(); }
       }
     }
     document.getElementById("tab-official").addEventListener("click", ()=> switchMode("official"));
@@ -607,6 +629,66 @@
       ).join("")}</div>`;
     }
 
+    // ---------------------------------------------------------------
+    // 同じ店名の重複チェック（実際に行って良かった店・行ってみたい店の両方を横断）
+    // 完全ブロックはせず、警告のみ表示する（同名の別支店の可能性があるため）
+    // ---------------------------------------------------------------
+    function normalizeName(name){
+      return (name||"").trim().toLowerCase().replace(/\s+/g,"");
+    }
+    function checkDuplicateName(name, {excludeStoreId, excludeWishId} = {}){
+      const n = normalizeName(name);
+      if(!n) return null;
+      const officialMatch = allStores.find(s=> normalizeName(s.name) === n && s.id !== excludeStoreId);
+      if(officialMatch) return { kind:"official", item: officialMatch };
+      const wishMatch = allWishItems.find(w=> normalizeName(w.name) === n && w.id !== excludeWishId);
+      if(wishMatch) return { kind:"wishlist", item: wishMatch };
+      return null;
+    }
+    function showNameWarning(elId, name, opts){
+      const el = document.getElementById(elId);
+      const dup = checkDuplicateName(name, opts);
+      if(!dup){ el.classList.add("hidden"); el.textContent = ""; return; }
+      if(dup.kind === "official"){
+        el.textContent = `⚠ 同じ名前のお店が、既に「実際に行って良かった店」に登録されています（${dup.item.area}／${dup.item.genre}）。別の支店であれば、そのまま登録して問題ありません。`;
+      }else{
+        el.textContent = `⚠ 同じ名前のお店が、既に「行ってみたい店」に登録されています。別の支店でなければ、そちらに感想を投稿する方法もあります。`;
+      }
+      el.classList.remove("hidden");
+    }
+
+    // 2点間の距離をメートルで計算（緯度経度ベース）
+    function distanceMeters(lat1, lng1, lat2, lng2){
+      const R = 6371000;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2-lat1), dLng = toRad(lng2-lng1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    const DUPLICATE_DISTANCE_METERS = 40; // これより近ければ「同じ場所」とみなす
+    function checkDuplicateLocation(lat, lng, {excludeStoreId, excludeWishId} = {}){
+      if(lat == null || lng == null) return null;
+      const officialMatch = allStores.find(s=>
+        s.id !== excludeStoreId && s.lat && s.lng && distanceMeters(lat,lng,s.lat,s.lng) <= DUPLICATE_DISTANCE_METERS);
+      if(officialMatch) return { kind:"official", item: officialMatch };
+      const wishMatch = allWishItems.find(w=>
+        w.id !== excludeWishId && w.lat && w.lng && distanceMeters(lat,lng,w.lat,w.lng) <= DUPLICATE_DISTANCE_METERS);
+      if(wishMatch) return { kind:"wishlist", item: wishMatch };
+      return null;
+    }
+    // 住所欄を離れたタイミングで実行（入力のたびにジオコーディングしないよう配慮）
+    async function checkAddressDuplicate(elId, address, opts){
+      const el = document.getElementById(elId);
+      if(!address){ el.classList.add("hidden"); el.textContent = ""; return; }
+      const geo = await geocodeAddress(address);
+      if(!geo){ el.classList.add("hidden"); el.textContent = ""; return; }
+      const dup = checkDuplicateLocation(geo.lat, geo.lng, opts);
+      if(!dup){ el.classList.add("hidden"); el.textContent = ""; return; }
+      const listName = dup.kind === "official" ? "実際に行って良かった店" : "行ってみたい店";
+      el.textContent = `⚠ ほぼ同じ場所に「${dup.item.name}」というお店が「${listName}」に既に登録されています。同じお店の可能性があります。`;
+      el.classList.remove("hidden");
+    }
+
     function fillStaticFormOptions(){
       document.getElementById("sf-genre").innerHTML = GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("sf-scenes");
@@ -614,6 +696,8 @@
     }
     function openStoreModal(store, prefill){
       document.getElementById("store-dialog-title").textContent = store ? "お店を編集" : "実際に行って良かった店を登録";
+      document.getElementById("sf-name-warning").classList.add("hidden");
+      document.getElementById("sf-address-warning").classList.add("hidden");
       document.getElementById("sf-id").value = store?.id || "";
       document.getElementById("sf-name").value = store?.name || prefill?.name || "";
       document.getElementById("sf-genre").value = store?.genre || GENRES[0];
@@ -638,11 +722,18 @@
         : "";
       const selectedScenes = new Set(store?.scenes || []);
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
+      showNameWarning("sf-name-warning", document.getElementById("sf-name").value, { excludeStoreId: store?.id });
       switchMode("official");
       dialog.showModal();
     }
     document.getElementById("sf-links-add").addEventListener("click", ()=>{
       addLinkRow(document.getElementById("sf-links"), "", "");
+    });
+    document.getElementById("sf-name").addEventListener("input", (e)=>{
+      showNameWarning("sf-name-warning", e.target.value, { excludeStoreId: document.getElementById("sf-id").value });
+    });
+    document.getElementById("sf-address").addEventListener("blur", (e)=>{
+      checkAddressDuplicate("sf-address-warning", e.target.value.trim(), { excludeStoreId: document.getElementById("sf-id").value });
     });
     const typeDialog = document.getElementById("type-dialog");
     document.getElementById("btn-add-store").addEventListener("click", ()=> typeDialog.showModal());
@@ -733,6 +824,110 @@
     setupTabGroup("filter-mine", "mine", ()=> applyWishlistFilter());
     setupTabGroup("filter-status", "status", ()=> applyWishlistFilter());
 
+    // ---------------------------------------------------------------
+    // 連絡先（友達）・グループ・共有先の選択
+    // ---------------------------------------------------------------
+    let myContacts = [];       // [{id, nickname, email}]
+    let myGroups = [];         // [{id, name, memberEmails}]
+    let wlShareEmails = new Set(); // 今フォームで選択中の共有先メールアドレス
+    let previousShareEmails = []; // 編集開始時点の共有先（新規追加分だけ通知するための比較用）
+
+    function nicknameForEmail(email){
+      const c = myContacts.find(c=> c.email.toLowerCase() === email.toLowerCase());
+      return c ? c.nickname : email;
+    }
+    function renderShareChips(){
+      const box = document.getElementById("wl-share-chips");
+      box.innerHTML = "";
+      [...wlShareEmails].forEach(email=>{
+        const chip = document.createElement("span");
+        chip.className = "text-xs bg-[var(--wish)] text-white rounded-full pl-3 pr-1 py-1 flex items-center gap-1";
+        chip.innerHTML = `${nicknameForEmail(email)} <button type="button" class="font-bold px-1">✕</button>`;
+        chip.querySelector("button").addEventListener("click", ()=>{
+          wlShareEmails.delete(email);
+          renderShareChips(); renderContactsList();
+        });
+        box.appendChild(chip);
+      });
+    }
+    function renderContactsList(){
+      const box = document.getElementById("wl-contacts-list");
+      if(!myContacts.length){
+        box.innerHTML = `<p class="text-[10px] text-[var(--ink)]/40">まだ連絡先がありません。下で名前とメールアドレスを入力して追加してください。</p>`;
+        return;
+      }
+      box.innerHTML = "";
+      myContacts.forEach(c=>{
+        const active = wlShareEmails.has(c.email.toLowerCase());
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "text-xs border rounded-full px-3 py-1";
+        chip.style.borderColor = "var(--wish)";
+        chip.style.background = active ? "var(--wish)" : "#fff";
+        chip.style.color = active ? "#fff" : "var(--wish)";
+        chip.textContent = c.nickname;
+        chip.addEventListener("click", ()=>{
+          const email = c.email.toLowerCase();
+          wlShareEmails.has(email) ? wlShareEmails.delete(email) : wlShareEmails.add(email);
+          renderShareChips(); renderContactsList();
+        });
+        box.appendChild(chip);
+      });
+    }
+    function renderGroupSelect(){
+      const sel = document.getElementById("wl-group-select");
+      sel.innerHTML = myGroups.length
+        ? myGroups.map(g=> `<option value="${g.id}">${g.name}（${g.memberEmails.length}人）</option>`).join("")
+        : `<option value="">グループ未作成</option>`;
+    }
+    async function loadContactsAndGroups(){
+      if(!currentUser) return;
+      const [cSnap, gSnap] = await Promise.all([
+        getDocs(query(collection(db,"contacts"), where("ownerUid","==",currentUser.uid))),
+        getDocs(query(collection(db,"groups"), where("ownerUid","==",currentUser.uid))),
+      ]);
+      myContacts = cSnap.docs.map(d=>({id:d.id, ...d.data()}));
+      myGroups = gSnap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderContactsList(); renderGroupSelect(); renderShareChips();
+    }
+
+    document.getElementById("wl-add-contact-btn").addEventListener("click", async ()=>{
+      const nickname = document.getElementById("wl-new-contact-nickname").value.trim();
+      const email = document.getElementById("wl-new-contact-email").value.trim().toLowerCase();
+      if(!nickname || !email){ alert("名前とメールアドレスの両方を入力してください"); return; }
+      try{
+        await addDoc(collection(db,"contacts"), { ownerUid: currentUser.uid, nickname, email, createdAt: new Date().toISOString() });
+        document.getElementById("wl-new-contact-nickname").value = "";
+        document.getElementById("wl-new-contact-email").value = "";
+        wlShareEmails.add(email);
+        await loadContactsAndGroups();
+      }catch(err){
+        console.error(err);
+        alert(`連絡先の追加に失敗しました（${err.code || err.message}）`);
+      }
+    });
+    document.getElementById("wl-use-group-btn").addEventListener("click", ()=>{
+      const groupId = document.getElementById("wl-group-select").value;
+      const group = myGroups.find(g=> g.id === groupId);
+      if(!group) return;
+      group.memberEmails.forEach(e=> wlShareEmails.add(e.toLowerCase()));
+      renderShareChips(); renderContactsList();
+    });
+    document.getElementById("wl-new-group-btn").addEventListener("click", async ()=>{
+      if(wlShareEmails.size === 0){ alert("先に連絡先をチェックして、グループに入れる人を選んでください"); return; }
+      const name = prompt("グループ名を入力してください（例：家族、会社の同僚）");
+      if(!name) return;
+      try{
+        await addDoc(collection(db,"groups"), {
+          ownerUid: currentUser.uid, name, memberEmails: [...wlShareEmails], createdAt: new Date().toISOString(),
+        });
+        await loadContactsAndGroups();
+      }catch(err){
+        console.error(err);
+        alert(`グループの作成に失敗しました（${err.code || err.message}）`);
+      }
+    });
+
     function resetWishlistForm(){
       document.getElementById("wl-edit-id").value = "";
       document.getElementById("wl-name").value = "";
@@ -745,10 +940,21 @@
       document.getElementById("wl-form-title").textContent = "＋ 行ってみたいお店を登録する";
       document.getElementById("btn-add-wish").textContent = "登録する";
       document.getElementById("btn-wl-cancel-edit").classList.add("hidden");
+      wlShareEmails = new Set();
+      previousShareEmails = [];
+      renderShareChips(); renderContactsList();
+      document.getElementById("wl-name-warning").classList.add("hidden");
+      document.getElementById("wl-address-warning").classList.add("hidden");
     }
     resetWishlistForm(); // 初期表示用に空のリンク行を1つ用意
     document.getElementById("wl-links-add").addEventListener("click", ()=>{
       addLinkRow(document.getElementById("wl-links"), "", "");
+    });
+    document.getElementById("wl-name").addEventListener("input", (e)=>{
+      showNameWarning("wl-name-warning", e.target.value, { excludeWishId: document.getElementById("wl-edit-id").value });
+    });
+    document.getElementById("wl-address").addEventListener("blur", (e)=>{
+      checkAddressDuplicate("wl-address-warning", e.target.value.trim(), { excludeWishId: document.getElementById("wl-edit-id").value });
     });
     function startEditWishItem(item){
       document.getElementById("wl-edit-id").value = item.id;
@@ -764,10 +970,26 @@
       document.getElementById("wl-form-title").textContent = "「" + item.name + "」を編集する";
       document.getElementById("btn-add-wish").textContent = "更新する";
       document.getElementById("btn-wl-cancel-edit").classList.remove("hidden");
+      wlShareEmails = new Set((item.sharedWithEmails || []).map(e=> e.toLowerCase()));
+      previousShareEmails = [...wlShareEmails];
+      renderShareChips(); renderContactsList();
+      showNameWarning("wl-name-warning", item.name, { excludeWishId: item.id });
       document.getElementById("wishlist-form-area").scrollIntoView({behavior:"smooth", block:"start"});
       document.getElementById("wl-name").focus();
     }
     document.getElementById("btn-wl-cancel-edit").addEventListener("click", resetWishlistForm);
+
+    async function notifySharedRecipients(storeName, newEmails){
+      for(const email of newEmails){
+        try{
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_SHARE_TEMPLATE_ID, {
+            to_email: email, sharer_name: currentNickname, store_name: storeName,
+          });
+        }catch(e){
+          console.error("共有通知メールの送信に失敗しました", email, e);
+        }
+      }
+    }
 
     document.getElementById("btn-add-wish").addEventListener("click", async ()=>{
       const name = document.getElementById("wl-name").value.trim();
@@ -777,6 +999,9 @@
       const address = document.getElementById("wl-address").value.trim();
       const links = collectLinks(document.getElementById("wl-links"));
       const anonymous = document.getElementById("wl-anonymous").checked;
+      const shareEmailsArr = [...wlShareEmails];
+      const sharedWith = shareEmailsArr.map(e=> ({ email: e, nickname: nicknameForEmail(e) }));
+      const newlyShared = shareEmailsArr.filter(e=> !previousShareEmails.includes(e));
       const btn = document.getElementById("btn-add-wish");
       btn.disabled = true;
       try{
@@ -785,7 +1010,7 @@
           await updateDoc(doc(db,"wishlist",editId), {
             name, memo, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
-            anonymous,
+            anonymous, sharedWith, sharedWithEmails: shareEmailsArr,
           });
         }else{
           await addDoc(collection(db,"wishlist"), {
@@ -794,11 +1019,13 @@
             addedBy: currentUser.uid,
             addedByNickname: currentNickname,
             anonymous,
+            sharedWith, sharedWithEmails: shareEmailsArr,
             status: "unvisited",
             impression: "", impressionByNickname: "",
             createdAt: new Date().toISOString(),
           });
         }
+        if(newlyShared.length) notifySharedRecipients(name, newlyShared);
         resetWishlistForm();
         loadWishlist();
       }catch(err){
@@ -823,8 +1050,10 @@
 
     function applyWishlistFilter(){
       if(viewMode !== "wishlist") return;
+      const myEmail = currentUser?.email?.toLowerCase();
       const filtered = allWishItems.filter(item=>{
         if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
+        if(wlFilter.mine === "shared" && !(myEmail && (item.sharedWithEmails||[]).includes(myEmail))) return false;
         if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
         return true;
       });
@@ -845,13 +1074,17 @@
         const visited = item.status === "visited";
         const mapQuery = (item.lat && item.lng) ? `${item.lat},${item.lng}` : (item.address || item.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+        const myEmail = currentUser?.email?.toLowerCase();
+        const sharedWithMe = myEmail && (item.sharedWithEmails||[]).includes(myEmail) && !isMine;
+        const shareLabel = (isMine || currentRole==="owner") && item.sharedWith?.length
+          ? `<p class="text-[10px] text-[var(--wish)] mt-1">共有先：${item.sharedWith.map(s=>s.nickname||s.email).join("、")}</p>` : "";
 
         const card = document.createElement("article");
         card.className = "store-card wish-card bg-white border border-[var(--line)] rounded-xl p-3";
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-              <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}</h3>
+              <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}</h3>
               ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
               <div class="flex flex-wrap gap-3 mt-1">
@@ -859,6 +1092,7 @@
               </div>
               ${renderLinkPills(normalizeLinks(item, "referenceUrl", "参考リンク"), "--wish")}
               <p class="text-[10px] text-[var(--ink)]/40 mt-1">${requesterLabel}${isMine && item.anonymous ? "（自分の登録です）" : ""}</p>
+              ${shareLabel}
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
               ${canManage ? `<button data-role="edit-wish" class="text-xs text-[var(--wish)] underline underline-offset-2">編集</button>` : ""}

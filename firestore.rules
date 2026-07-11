@@ -40,6 +40,26 @@ service cloud.firestore {
         (resource.data.authorUid == request.auth.uid || isEditorOrOwner());
     }
 
+    // wishlist：行きたい店リスト。ログインしていれば誰でも閲覧・登録・感想投稿ができる。
+    // 削除は「登録した本人」か「編集者以上」のみ。匿名表示はアプリ側（画面）で制御している。
+    match /wishlist/{wishId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.addedBy == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null &&
+        (resource.data.addedBy == request.auth.uid || isEditorOrOwner());
+    }
+
+    // contacts / groups：行ってみたい店を共有する相手（友達・グループ）。本人のものだけ読み書き可能。
+    match /contacts/{contactId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+    match /groups/{groupId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
