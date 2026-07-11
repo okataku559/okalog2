@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>おかログ｜使い方ガイド</title>
 <link rel="icon" href="logo.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta name="theme-color" content="#1F2421">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="おかログ">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -181,6 +186,60 @@
       </p>
     </section>
 
+    <!-- スマホで使いやすくする -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-2">スマホでもっと使いやすくする</h2>
+      <p class="text-sm leading-relaxed mb-4">
+        おかログはアプリではなく「Webサイト」なので、App StoreやGoogle Playからのインストールはできません。
+        ただし、スマホの機能を使って<b>ホーム画面にアイコンを追加</b>すると、アプリのように
+        ワンタップで開けるようになり、ブラウザの住所バーなども表示されずすっきり使えます。<br>
+        一度設定しておくと、次回からとても楽になるのでおすすめです。
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="mock p-4">
+          <p class="font-bold text-sm mb-2"> iPhone・iPad（Safari）</p>
+          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
+            <li>おかログを Safari で開く</li>
+            <li>画面下（またはアドレスバー横）の<b>共有ボタン</b>（四角から矢印が出ているアイコン）をタップ</li>
+            <li>メニューを下にスクロールし、<b>「ホーム画面に追加」</b>をタップ</li>
+            <li>名前を確認して右上の「追加」をタップ</li>
+          </ol>
+        </div>
+
+        <div class="mock p-4">
+          <p class="font-bold text-sm mb-2"> iPhone・iPad（Chrome）</p>
+          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
+            <li>おかログを Chrome で開く</li>
+            <li>画面下部の<b>共有ボタン</b>（四角から矢印が出ているアイコン）をタップ</li>
+            <li>メニューから<b>「ホーム画面に追加」</b>を選択</li>
+            <li>「追加」をタップ</li>
+          </ol>
+          <p class="text-[10px] text-[var(--ink)]/50 mt-2">※iPhoneではChromeもSafariと同じ仕組みの共有メニューを使います。</p>
+        </div>
+
+        <div class="mock p-4">
+          <p class="font-bold text-sm mb-2"> Android（Chrome）</p>
+          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
+            <li>おかログを Chrome で開く</li>
+            <li>右上の<b>⋮（縦三点リーダー）</b>をタップ</li>
+            <li><b>「ホーム画面に追加」</b>または<b>「アプリをインストール」</b>をタップ</li>
+            <li>「インストール」または「追加」をタップ</li>
+          </ol>
+          <p class="text-[10px] text-[var(--ink)]/50 mt-2">※機種によっては、開いた時点で「インストールしますか？」というバナーが自動で出ることもあります。</p>
+        </div>
+
+        <div class="mock p-4">
+          <p class="font-bold text-sm mb-2"> 追加すると、こう変わります</p>
+          <ul class="text-xs text-[var(--ink)]/80 space-y-1.5 list-disc list-inside">
+            <li>ホーム画面のアイコンをタップするだけで起動</li>
+            <li>ブラウザのアドレスバーが表示されず、アプリのような画面に</li>
+            <li>ログイン状態もそのまま保持されます</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <!-- よくある質問 -->
     <section>
       <h2 class="section-title text-xl font-bold mb-3">よくある質問</h2>
@@ -196,6 +255,14 @@
         <div>
           <p class="font-bold">Q. 削除依頼をしたのに反映されない</p>
           <p class="text-xs text-[var(--ink)]/70 mt-1">A. 削除の実行はオーナーだけが行えます。依頼が出ると、そのお店のカードにオーナーだけに見える「削除依頼あり」の表示が出るので、確認をお待ちください。</p>
+        </div>
+        <div>
+          <p class="font-bold">Q. 「Googleでログイン」を押すと「アクセスをブロック」というエラーが出る</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            A. LINEやInstagramなどのアプリ内リンクから開いた場合に起きやすいエラーです。Googleのセキュリティ方針で、
+            アプリ内の簡易ブラウザからのログインがブロックされています。画面右上のメニュー（⋮や共有アイコンなど）から
+            「ブラウザで開く」「Safariで開く」を選んで、SafariやChromeなど通常のブラウザで開き直してから、もう一度お試しください。
+          </p>
         </div>
       </div>
     </section>

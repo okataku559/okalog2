@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>おかログ｜本当に行って良かったお店だけ。</title>
 <link rel="icon" href="logo.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta name="theme-color" content="#1F2421">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="おかログ">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -37,6 +42,12 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+  <!-- アプリ内ブラウザ（LINE等）で開いている場合の警告バナー -->
+  <div id="inapp-browser-warning" class="hidden bg-[#F5C518] text-[var(--ink)] text-xs md:text-sm px-4 py-2 flex items-center justify-between gap-3">
+    <span>⚠️ このページはアプリ内のブラウザで開かれています。ログイン機能を使うには、右上（または右下）の「…」メニューから<b>「他のアプリで開く」「Safariで開く」「Chromeで開く」</b>を選んで開き直してください。</span>
+    <button id="inapp-browser-warning-close" class="shrink-0 font-bold px-2" aria-label="閉じる">✕</button>
+  </div>
+
   <!-- ヘッダー -->
   <header class="bg-[var(--ink)] text-[var(--paper)]">
     <div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
@@ -45,7 +56,9 @@
         <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">本当に行って良かったお店だけ。。。　関西中心にエリア拡大中。</p>
       </div>
       <div class="flex items-center gap-3 text-xs md:text-sm">
-        <a href="guide.html" class="underline underline-offset-2 opacity-80">使い方ガイド</a>
+        <a href="guide.html" class="flex items-center gap-1 bg-[var(--kin)]/20 border border-[var(--kin)] text-[var(--paper)] rounded-full px-3 py-1 hover:bg-[var(--kin)]/30 transition-colors">
+          <span aria-hidden="true">📖</span> 使い方ガイド
+        </a>
         <div id="auth-area" class="flex items-center gap-2"></div>
       </div>
     </div>
@@ -184,7 +197,7 @@
       collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc,
       query, where, orderBy, limit
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { GENRES, SCENES, AREA_TREE } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
@@ -192,6 +205,22 @@
     } from "./firebase-init.js";
     import emailjs from "https://esm.run/@emailjs/browser";
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+    // ---------------------------------------------------------------
+    // アプリ内ブラウザ（LINE・Instagram・Facebook等）の検知
+    // Googleがこれらの環境からのログインをブロックするため、先に案内する
+    // ---------------------------------------------------------------
+    (function checkInAppBrowser(){
+      const ua = navigator.userAgent || "";
+      const isInApp = /Line\/|FBAN|FBAV|Instagram|Twitter|MicroMessenger/i.test(ua);
+      if(isInApp){
+        const banner = document.getElementById("inapp-browser-warning");
+        banner.classList.remove("hidden");
+        document.getElementById("inapp-browser-warning-close").addEventListener("click", ()=>{
+          banner.classList.add("hidden");
+        });
+      }
+    })();
 
     // ---------------------------------------------------------------
     // 認証・権限（role）
@@ -238,11 +267,21 @@
         btnAdd.classList.remove("hidden"); // ログインしていれば誰でも登録の入口を見せる（種類はダイアログで選ぶ）
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
-        document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+        document.getElementById("btn-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
         btnAdd.classList.add("hidden");
       }
       renderWishlistAuthState();
     }
+
+    // リダイレクト方式のログイン結果を確認（失敗時はエラー内容を表示）
+    getRedirectResult(auth).catch((err)=>{
+      console.error("ログインに失敗しました", err);
+      if(err.code === "auth/unauthorized-domain"){
+        alert("このサイトのドメインがFirebaseの許可リストに登録されていません。管理者に連絡してください。");
+      }else if(err.code !== "auth/no-current-user" && err.code){
+        alert(`ログインに失敗しました（${err.code}）。\nアプリ内ブラウザ（LINE・Instagram等）で開いている場合は、右上のメニューから「ブラウザで開く」を選んでもう一度お試しください。`);
+      }
+    });
 
     onAuthStateChanged(auth, async (user)=>{
       currentUser = user;
@@ -292,7 +331,7 @@
         document.getElementById("empty-state").classList.add("hidden");
       }
     }
-    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
 
     // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・メール通知リンクからの遷移用）は自動でタブを切替
     if(new URLSearchParams(window.location.search).get("mode") === "wishlist"){
