@@ -105,8 +105,11 @@
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
           <input id="wl-address" type="text" placeholder="住所（任意・分かる範囲でOK。地図に表示されます）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
-          <input id="wl-url" type="text" placeholder="参考リンク（Instagramの投稿URLなど・任意）"
-                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <div>
+            <p class="text-xs font-bold mb-1">参考リンク（食べログ・Instagramなど、複数登録できます）</p>
+            <div id="wl-links" class="space-y-1"></div>
+            <button type="button" id="wl-links-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ リンクを追加</button>
+          </div>
           <label class="flex items-center gap-2 text-xs text-[var(--ink)]/70">
             <input type="checkbox" id="wl-anonymous">
             匿名で登録する（誰が登録したか他の人には表示されません）
@@ -166,7 +169,11 @@
       </label>
       <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
       <label class="block text-xs font-bold">おすすめポイント（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
-      <label class="block text-xs font-bold">外部URL（予約サイト等）<input id="sf-url" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+      <div>
+        <p class="text-xs font-bold mb-1">参考リンク（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
+        <div id="sf-links" class="space-y-1"></div>
+        <button type="button" id="sf-links-add" class="text-xs underline underline-offset-2 text-[var(--shu)] mt-1">＋ リンクを追加</button>
+      </div>
       <p id="sf-status" class="text-xs text-[var(--shu)]"></p>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" id="sf-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)]">キャンセル</button>
@@ -190,6 +197,11 @@
       <button type="button" id="type-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)] w-full">キャンセル</button>
     </div>
   </dialog>
+
+  <datalist id="link-label-presets">
+    <option value="食べログ"><option value="ホットペッパー"><option value="ぐるなび">
+    <option value="Instagram"><option value="公式サイト"><option value="予約サイト">
+  </datalist>
 
   <script type="module">
     import { db, auth, googleProvider } from "./firebase-init.js";
@@ -458,8 +470,8 @@
           <p class="text-xs text-[var(--ink)]/60 mt-2">${s.address || ""}</p>
           <div class="flex flex-wrap gap-3 mt-1 text-xs">
             <a href="${mapUrl}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">Googleマップで見る</a>
-            ${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">お店のサイト・予約はこちら</a>` : ""}
           </div>
+          ${renderLinkPills(normalizeLinks(s, "url", "外部リンク"), "--shu")}
           <div class="flex flex-wrap gap-2 mt-2 text-xs">
             <button data-role="toggle-review" class="underline underline-offset-2 text-[var(--ink)]/70">口コミを見る・書く</button>
             ${canEdit ? `<button data-role="edit" class="underline underline-offset-2 text-[var(--ink)]/70">編集</button>` : ""}
@@ -559,6 +571,42 @@
     // お店 追加・編集モーダル（実際に行って良かった店）
     // ---------------------------------------------------------------
     const dialog = document.getElementById("store-dialog");
+    // ---------------------------------------------------------------
+    // 複数リンク（食べログ／ホットペッパー／Instagram等）の共通ヘルパー
+    // ---------------------------------------------------------------
+    function addLinkRow(container, label, url){
+      const row = document.createElement("div");
+      row.className = "flex gap-1 items-center";
+      row.innerHTML = `
+        <input list="link-label-presets" placeholder="種類（食べログ等）" value="${label||""}"
+               class="w-28 shrink-0 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="link-label">
+        <input type="text" placeholder="URL" value="${url||""}"
+               class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="link-url">
+        <button type="button" class="text-xs text-[var(--shu)] shrink-0 px-1" data-role="link-remove">✕</button>
+      `;
+      row.querySelector('[data-role="link-remove"]').addEventListener("click", ()=> row.remove());
+      container.appendChild(row);
+    }
+    function collectLinks(container){
+      return [...container.querySelectorAll(":scope > div")].map(row=>({
+        label: row.querySelector('[data-role="link-label"]').value.trim(),
+        url: row.querySelector('[data-role="link-url"]').value.trim(),
+      })).filter(l=> l.url);
+    }
+    // 旧データ（単一のurl／referenceUrl文字列）との後方互換：
+    // linksがあればそれを使い、なければ古い単一フィールドを1件のリンクとして扱う
+    function normalizeLinks(item, legacyField, legacyLabel){
+      if(item.links && item.links.length) return item.links;
+      if(item[legacyField]) return [{ label: legacyLabel, url: item[legacyField] }];
+      return [];
+    }
+    function renderLinkPills(links, colorVar){
+      if(!links.length) return "";
+      return `<div class="flex flex-wrap gap-3 mt-1">${links.map(l=>
+        `<a href="${l.url}" target="_blank" rel="noopener" class="text-xs underline underline-offset-2" style="color:var(${colorVar})" onclick="event.stopPropagation()">${l.label || "リンクを見る"}</a>`
+      ).join("")}</div>`;
+    }
+
     function fillStaticFormOptions(){
       document.getElementById("sf-genre").innerHTML = GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("sf-scenes");
@@ -575,7 +623,16 @@
       document.getElementById("sf-address").value = store?.address || prefill?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
-      document.getElementById("sf-url").value = store?.url || prefill?.url || "";
+      const linksBox = document.getElementById("sf-links");
+      linksBox.innerHTML = "";
+      const initialLinks = store
+        ? normalizeLinks(store, "url", "外部リンク")
+        : (prefill?.links || (prefill?.url ? [{label:"参考リンク", url:prefill.url}] : []));
+      if(initialLinks.length){
+        initialLinks.forEach(l=> addLinkRow(linksBox, l.label, l.url));
+      }else{
+        addLinkRow(linksBox, "", ""); // 空の入力行を1つ用意
+      }
       document.getElementById("sf-status").textContent = prefill
         ? "行ってみたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を確認・入力してください。"
         : "";
@@ -584,6 +641,9 @@
       switchMode("official");
       dialog.showModal();
     }
+    document.getElementById("sf-links-add").addEventListener("click", ()=>{
+      addLinkRow(document.getElementById("sf-links"), "", "");
+    });
     const typeDialog = document.getElementById("type-dialog");
     document.getElementById("btn-add-store").addEventListener("click", ()=> typeDialog.showModal());
     document.getElementById("type-cancel").addEventListener("click", ()=> typeDialog.close());
@@ -626,6 +686,7 @@
       const address = document.getElementById("sf-address").value.trim();
       const scenes = [...document.querySelectorAll('#sf-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
       const geo = await geocodeAddress(address);
+      const links = collectLinks(document.getElementById("sf-links"));
       const data = {
         name: document.getElementById("sf-name").value.trim(),
         genre: document.getElementById("sf-genre").value,
@@ -635,7 +696,8 @@
         address, scenes,
         taste: Number(document.getElementById("sf-taste").value) || 0,
         features: document.getElementById("sf-features").value.trim(),
-        url: document.getElementById("sf-url").value.trim(),
+        links,
+        url: links[0]?.url || "", // 旧バージョン互換用（表示側はlinksを優先して使用）
         lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
         updatedAt: new Date().toISOString(),
       };
@@ -676,18 +738,28 @@
       document.getElementById("wl-name").value = "";
       document.getElementById("wl-memo").value = "";
       document.getElementById("wl-address").value = "";
-      document.getElementById("wl-url").value = "";
+      const wlLinksBox = document.getElementById("wl-links");
+      wlLinksBox.innerHTML = "";
+      addLinkRow(wlLinksBox, "", "");
       document.getElementById("wl-anonymous").checked = false;
       document.getElementById("wl-form-title").textContent = "＋ 行ってみたいお店を登録する";
       document.getElementById("btn-add-wish").textContent = "登録する";
       document.getElementById("btn-wl-cancel-edit").classList.add("hidden");
     }
+    resetWishlistForm(); // 初期表示用に空のリンク行を1つ用意
+    document.getElementById("wl-links-add").addEventListener("click", ()=>{
+      addLinkRow(document.getElementById("wl-links"), "", "");
+    });
     function startEditWishItem(item){
       document.getElementById("wl-edit-id").value = item.id;
       document.getElementById("wl-name").value = item.name || "";
       document.getElementById("wl-memo").value = item.memo || "";
       document.getElementById("wl-address").value = item.address || "";
-      document.getElementById("wl-url").value = item.referenceUrl || "";
+      const wlLinksBox = document.getElementById("wl-links");
+      wlLinksBox.innerHTML = "";
+      const links = normalizeLinks(item, "referenceUrl", "参考リンク");
+      if(links.length) links.forEach(l=> addLinkRow(wlLinksBox, l.label, l.url));
+      else addLinkRow(wlLinksBox, "", "");
       document.getElementById("wl-anonymous").checked = !!item.anonymous;
       document.getElementById("wl-form-title").textContent = "「" + item.name + "」を編集する";
       document.getElementById("btn-add-wish").textContent = "更新する";
@@ -703,7 +775,7 @@
       const editId = document.getElementById("wl-edit-id").value;
       const memo = document.getElementById("wl-memo").value.trim();
       const address = document.getElementById("wl-address").value.trim();
-      const referenceUrl = document.getElementById("wl-url").value.trim();
+      const links = collectLinks(document.getElementById("wl-links"));
       const anonymous = document.getElementById("wl-anonymous").checked;
       const btn = document.getElementById("btn-add-wish");
       btn.disabled = true;
@@ -711,13 +783,13 @@
         const geo = await geocodeAddress(address);
         if(editId){
           await updateDoc(doc(db,"wishlist",editId), {
-            name, memo, referenceUrl, address,
+            name, memo, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             anonymous,
           });
         }else{
           await addDoc(collection(db,"wishlist"), {
-            name, memo, referenceUrl, address,
+            name, memo, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             addedBy: currentUser.uid,
             addedByNickname: currentNickname,
@@ -784,8 +856,8 @@
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
               <div class="flex flex-wrap gap-3 mt-1">
                 ${item.lat && item.lng ? `<a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">Googleマップで見る</a>` : ""}
-                ${item.referenceUrl ? `<a href="${item.referenceUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">参考リンクを見る</a>` : ""}
               </div>
+              ${renderLinkPills(normalizeLinks(item, "referenceUrl", "参考リンク"), "--wish")}
               <p class="text-[10px] text-[var(--ink)]/40 mt-1">${requesterLabel}${isMine && item.anonymous ? "（自分の登録です）" : ""}</p>
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
@@ -842,7 +914,7 @@
           card.querySelector('[data-role="promote"]')?.addEventListener("click", ()=>{
             const memo = [item.memo, visited ? `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}` : ""]
               .filter(Boolean).join("\n");
-            openStoreModal(null, { name: item.name, memo, url: item.referenceUrl || "", address: item.address || "" });
+            openStoreModal(null, { name: item.name, memo, links: normalizeLinks(item, "referenceUrl", "参考リンク"), address: item.address || "" });
           });
         }
         list.appendChild(card);
