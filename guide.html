@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかログ｜使い方ガイド</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#1F2421; --paper:#FBF7EE; --paper-dim:#F1EBDC;
+    --shu:#B23A22; --shu-dark:#8C2C19; --kin:#B8902E; --line:#DDD3BE;
+    --wish:#2B5DA6; --wish-dark:#204A87;
+  }
+  html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
+  .font-display{ font-family:"Shippori Mincho",serif; }
+  h2.section-title{ font-family:"Shippori Mincho",serif; }
+  .mock{ background:#fff; border:1px solid var(--line); border-radius:.75rem; }
+  .pin{ display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; border-radius:50% 50% 50% 0; transform:rotate(-45deg); }
+  .pin-official{ background:var(--shu); }
+  .pin-wish{ background:var(--wish); }
+  .arrow-down{ width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:10px solid var(--line); margin:.25rem auto; }
+  .step-num{ width:1.5rem; height:1.5rem; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; flex-shrink:0; }
+</style>
+</head>
+<body class="min-h-screen">
+
+  <header class="bg-[var(--ink)] text-[var(--paper)]">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg">
+        <h1 class="text-base md:text-lg font-bold">使い方ガイド</h1>
+      </div>
+      <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">ホームに戻る</a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8 space-y-12">
+
+    <!-- はじめに -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-2">おかログとは</h2>
+      <p class="text-sm leading-relaxed">
+        「本当に行って良かったお店」だけを厳選して載せる、身内・仲間内向けのグルメ検索サイトです。
+        大手グルメサイトのように誰でも書き込める口コミサイトではなく、
+        <b>本当に良いと思ったお店だけ</b>を載せる、という考え方で作っています。
+        あわせて、まだ行ったことはないけれど気になっている「行ってみたい店」も管理できます。
+      </p>
+    </section>
+
+    <!-- 2つのリスト -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">2つのリストを使い分けよう</h2>
+      <p class="text-sm mb-4">ホーム画面の上部にあるタブで、2種類のリストを切り替えられます。</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="mock p-4" style="border-left:4px solid var(--shu)">
+          <p class="font-bold text-sm" style="color:var(--shu)"><span class="pin pin-official"></span>&nbsp; 実際に行って良かった店</p>
+          <p class="text-xs mt-2 text-[var(--ink)]/70">実際に行って、本当に良かったお店の正式なリストです。地図には<b>赤いピン</b>で表示されます。誰でも検索・閲覧できます。</p>
+        </div>
+        <div class="mock p-4" style="border-left:4px solid var(--wish)">
+          <p class="font-bold text-sm" style="color:var(--wish)"><span class="pin pin-wish"></span>&nbsp; 行ってみたい店</p>
+          <p class="text-xs mt-2 text-[var(--ink)]/70">まだ行ったことがないけれど気になっているお店のメモリストです。地図には<b>青いピン</b>で表示されます。ログインすれば誰でも登録できます。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 実際に行って良かった店の使い方 -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">「実際に行って良かった店」の探し方</h2>
+
+      <p class="text-sm font-bold mb-2">① 絞り込みは上から順番に</p>
+      <div class="mock p-4 mb-2">
+        <div class="flex flex-wrap gap-2 text-xs">
+          <span class="border border-[var(--line)] rounded-full px-3 py-1">都道府県</span>
+          <span class="border border-[var(--line)] rounded-full px-3 py-1">エリア</span>
+          <span class="border border-[var(--line)] rounded-full px-3 py-1">ジャンル</span>
+          <span class="border border-[var(--line)] rounded-full px-3 py-1">利用シーン</span>
+          <span class="border border-[var(--line)] rounded-full px-3 py-1 flex-1 min-w-[100px] text-[var(--ink)]/40">店名・特徴で検索</span>
+        </div>
+      </div>
+      <p class="text-xs text-[var(--ink)]/70 mb-4">
+        都道府県を選ぶと、その中の「エリア」（梅田・北新地など、繁華街レベルの単位）が選べるようになります。
+        選ぶたびに、<b>ボタンを押さなくても自動で</b>下の一覧が絞り込まれます。
+      </p>
+
+      <p class="text-sm font-bold mb-2">② 一覧カードの見方</p>
+      <div class="mock p-3 mb-2">
+        <p class="font-bold text-sm">お店の名前<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle ml-1">タグ</span></p>
+        <p class="text-xs text-[var(--ink)]/60">エリア名 ／ ジャンル</p>
+        <p class="text-sm" style="color:var(--kin)">★★★★☆</p>
+        <p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><b>おすすめポイント：</b>編集者・オーナーが書いたコメント</p>
+        <p class="text-xs text-[var(--ink)]/60 mt-2">住所</p>
+        <div class="flex gap-3 mt-1 text-xs" style="color:var(--shu)">
+          <span class="underline">Googleマップで見る</span><span class="underline">お店のサイト・予約はこちら</span>
+        </div>
+        <div class="flex gap-3 mt-2 text-xs text-[var(--ink)]/70"><span class="underline">口コミを見る・書く</span></div>
+      </div>
+      <p class="text-xs text-[var(--ink)]/70">
+        カードをタップすると、右側（スマホでは下）の地図が該当のお店にジャンプします。
+        「口コミを見る・書く」は、ログインしていれば誰でも書き込めます（ニックネーム表示・文字のみ）。
+      </p>
+    </section>
+
+    <!-- 行ってみたい店の使い方 -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">「行ってみたい店」の使い方</h2>
+
+      <div class="flex items-start gap-3 mb-3">
+        <span class="step-num" style="background:var(--wish); color:#fff;">1</span>
+        <div>
+          <p class="text-sm font-bold">気になるお店を登録する</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            「行ってみたい店」タブを開き、店名・メモ・住所（分かる範囲でOK）・参考リンク（Instagramの投稿URLなど）を入力して登録します。
+            住所を入れると地図にも表示されます。<b>「匿名で登録する」</b>にチェックすると、他の人には誰が登録したか分かりません（自分だけは分かります）。
+          </p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 mb-3">
+        <span class="step-num" style="background:var(--wish); color:#fff;">2</span>
+        <div>
+          <p class="text-sm font-bold">誰かが実際に行って、感想を投稿する</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            ログインしていれば誰でも、行ってみたい店に「感想」を書き込めます。感想を書くと「訪問済み」になり、
+            <b>登録した本人にメールで通知</b>が届きます（匿名で登録していても、本人にはちゃんと届きます）。
+          </p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="step-num" style="background:var(--shu); color:#fff;">3</span>
+        <div>
+          <p class="text-sm font-bold">気に入ったら、正式なお店リストへ</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            編集者・オーナーは、行ってみたい店のカードにある<b>「実際に行って良かった店として登録する」</b>ボタンから、
+            店名・メモ・住所・参考リンクの内容を引き継いだまま、正式なお店リストへ昇格登録できます。
+          </p>
+        </div>
+      </div>
+
+      <p class="text-xs text-[var(--ink)]/60 mt-4">
+        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。
+      </p>
+    </section>
+
+    <!-- 権限について -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">権限について（4段階）</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs border-collapse">
+          <thead>
+            <tr class="bg-[var(--paper-dim)]">
+              <th class="text-left p-2 border border-[var(--line)]">できること</th>
+              <th class="p-2 border border-[var(--line)]">閲覧のみ</th>
+              <th class="p-2 border border-[var(--line)]">ログインユーザー</th>
+              <th class="p-2 border border-[var(--line)]">編集者</th>
+              <th class="p-2 border border-[var(--line)]">オーナー</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="p-2 border border-[var(--line)]">検索・閲覧</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            <tr><td class="p-2 border border-[var(--line)]">口コミ投稿</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            <tr><td class="p-2 border border-[var(--line)]">行ってみたい店の登録</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            <tr><td class="p-2 border border-[var(--line)]">実際に行って良かった店の登録・編集</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            <tr><td class="p-2 border border-[var(--line)]">お店の削除</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">依頼のみ</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            <tr><td class="p-2 border border-[var(--line)]">CSV一括取込・書き出し</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-[var(--ink)]/60 mt-2">
+        ※「ログインユーザー」は、Googleでログインしただけの一般の人です。編集者・オーナーへの昇格は、サイト管理者が個別に設定します。
+      </p>
+    </section>
+
+    <!-- ログイン・表示名 -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">ログイン・表示名について</h2>
+      <p class="text-sm leading-relaxed">
+        画面右上の「Googleでログイン」から、お使いのGoogleアカウントでログインできます。パスワードを新しく覚える必要はありません。
+        ログイン後、右上の「表示名を変更」から、口コミや行ってみたい店リストに表示される名前（ニックネーム）を自由に設定できます。
+      </p>
+    </section>
+
+    <!-- よくある質問 -->
+    <section>
+      <h2 class="section-title text-xl font-bold mb-3">よくある質問</h2>
+      <div class="space-y-3 text-sm">
+        <div>
+          <p class="font-bold">Q. 行ってみたい店に「匿名で登録する」を付けたのに、後から見返すには？</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 「行ってみたい店」タブの「自分が登録した店」ボタンを押すと、匿名にしていても自分の登録だけを絞り込んで確認できます。</p>
+        </div>
+        <div>
+          <p class="font-bold">Q. 地図にピンが表示されないお店がある</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 住所から地図上の位置がうまく特定できなかった可能性があります。編集画面から住所を見直して保存し直すと直ることがあります。</p>
+        </div>
+        <div>
+          <p class="font-bold">Q. 削除依頼をしたのに反映されない</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 削除の実行はオーナーだけが行えます。依頼が出ると、そのお店のカードにオーナーだけに見える「削除依頼あり」の表示が出るので、確認をお待ちください。</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-xs text-[var(--ink)]/40 py-8">
+    <a href="index.html" class="underline underline-offset-2">ホームに戻る</a>
+  </footer>
+
+</body>
+</html>
