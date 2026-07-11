@@ -52,7 +52,7 @@
   <header class="bg-[var(--ink)] text-[var(--paper)]">
     <div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-3">
-        <img src="logo.png" alt="おかログ｜本当に行って良かったお店だけ。" class="h-14 md:h-16 w-auto rounded-lg">
+        <a href="index.html"><img src="logo.png" alt="おかログ｜本当に行って良かったお店だけ。" class="h-14 md:h-16 w-auto rounded-lg"></a>
         <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">本当に行って良かったお店だけ。。。　関西中心にエリア拡大中。</p>
       </div>
       <div class="flex items-center gap-3 text-xs md:text-sm">
@@ -113,9 +113,23 @@
             <button type="button" id="wl-links-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ リンクを追加</button>
           </div>
           <div class="border border-[var(--line)] rounded-lg p-2 space-y-2">
-            <p class="text-xs font-bold">共有先（任意・選んだ人にメールで通知されます）</p>
+            <p class="text-xs font-bold">共有先（任意・選んだ人と共有できます）</p>
+            <p class="text-[10px] text-[var(--ink)]/50">
+              あなたの共有ID：<b id="wl-my-share-id">-</b>
+              <button type="button" id="wl-copy-share-id" class="underline underline-offset-2 text-[var(--wish)] ml-1">コピー</button>
+              （この番号を友達に伝えると、あなたのメールアドレスを教えずに共有してもらえます）
+            </p>
             <div id="wl-share-chips" class="flex flex-wrap gap-1"></div>
             <div id="wl-contacts-list" class="flex flex-wrap gap-1"></div>
+
+            <p class="text-[10px] font-bold text-[var(--ink)]/60 pt-1 border-t border-[var(--line)]">友達の共有IDで追加（メールアドレス不要）</p>
+            <div class="flex flex-wrap gap-1">
+              <input type="text" id="wl-share-id-input" placeholder="例：AB12CD"
+                     class="w-28 border border-[var(--line)] rounded px-2 py-1 text-xs uppercase">
+              <button type="button" id="wl-add-by-share-id-btn" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">IDで追加</button>
+            </div>
+
+            <p class="text-[10px] font-bold text-[var(--ink)]/60 pt-1 border-t border-[var(--line)]">名前とメールアドレスで追加</p>
             <div class="flex flex-wrap gap-1">
               <input type="text" id="wl-new-contact-nickname" placeholder="名前"
                      class="w-20 border border-[var(--line)] rounded px-2 py-1 text-xs">
@@ -262,15 +276,25 @@
     let currentUser = null;     // Firebase Authのユーザー情報
     let currentRole = "anonymous"; // 'anonymous' | 'member' | 'editor' | 'owner'
     let currentNickname = "";
+    let currentShareId = "";
 
+    function generateShareId(){
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 紛らわしい文字(0,O,1,I等)を除外
+      let id = "";
+      for(let i=0;i<6;i++) id += chars[Math.floor(Math.random()*chars.length)];
+      return id;
+    }
     async function ensureUserDoc(user){
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref).catch(()=>null);
       if(!snap || !snap.exists()){
         await setDoc(ref, {
           email: user.email, displayName: user.displayName || "名無しさん",
-          role: "member", createdAt: new Date().toISOString(),
+          role: "member", shareId: generateShareId(), createdAt: new Date().toISOString(),
         });
+      }else if(!snap.data().shareId){
+        // 既存アカウントに共有IDがまだ無い場合は、ここで発行する
+        await updateDoc(ref, { shareId: generateShareId() });
       }
       const fresh = await getDoc(ref);
       return fresh.data();
@@ -293,6 +317,7 @@
       const btnAdd = document.getElementById("btn-add-store");
       if(currentUser){
         box.innerHTML = `
+          <a href="mypage.html" class="underline underline-offset-2">マイページ</a>
           <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
@@ -323,8 +348,9 @@
         const data = await ensureUserDoc(user);
         currentRole = data.role || "member";
         currentNickname = data.displayName || user.displayName || "名無しさん";
+        currentShareId = data.shareId || "";
       }else{
-        currentRole = "anonymous"; currentNickname = "";
+        currentRole = "anonymous"; currentNickname = ""; currentShareId = "";
       }
       renderAuthArea();
       if(viewMode === "official") applyFilters();
@@ -367,8 +393,12 @@
     }
     document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
 
-    // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・メール通知リンクからの遷移用）は自動でタブを切替
-    if(new URLSearchParams(window.location.search).get("mode") === "wishlist"){
+    // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・マイページからの遷移用）は自動でタブを切替
+    // 「&edit=店舗ID」が付いていれば、データ読み込み後に自動でその項目の編集フォームを開く
+    let pendingWishEditId = null;
+    const initialParams = new URLSearchParams(window.location.search);
+    if(initialParams.get("mode") === "wishlist"){
+      pendingWishEditId = initialParams.get("edit") || null;
       switchMode("wishlist");
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -889,7 +919,41 @@
       myContacts = cSnap.docs.map(d=>({id:d.id, ...d.data()}));
       myGroups = gSnap.docs.map(d=>({id:d.id, ...d.data()}));
       renderContactsList(); renderGroupSelect(); renderShareChips();
+      const idEl = document.getElementById("wl-my-share-id");
+      if(idEl) idEl.textContent = currentShareId || "-";
     }
+    document.getElementById("wl-copy-share-id").addEventListener("click", async ()=>{
+      if(!currentShareId) return;
+      try{
+        await navigator.clipboard.writeText(currentShareId);
+        alert(`共有ID「${currentShareId}」をコピーしました。友達に伝えてください。`);
+      }catch(e){
+        prompt("コピーできない場合は、この番号を選択してコピーしてください", currentShareId);
+      }
+    });
+    document.getElementById("wl-add-by-share-id-btn").addEventListener("click", async ()=>{
+      const input = document.getElementById("wl-share-id-input");
+      const shareId = input.value.trim().toUpperCase();
+      if(!shareId){ alert("友達から教えてもらった共有IDを入力してください"); return; }
+      if(shareId === currentShareId){ alert("自分自身の共有IDです。"); return; }
+      try{
+        const snap = await getDocs(query(collection(db,"users"), where("shareId","==",shareId)));
+        if(snap.empty){ alert("その共有IDのユーザーが見つかりませんでした。番号を確認してください。"); return; }
+        const found = snap.docs[0].data();
+        const email = found.email.toLowerCase();
+        const nickname = found.displayName || "名無しさん";
+        // 既に連絡先にあれば重複登録しない
+        if(!myContacts.some(c=> c.email.toLowerCase() === email)){
+          await addDoc(collection(db,"contacts"), { ownerUid: currentUser.uid, nickname, email, createdAt: new Date().toISOString() });
+        }
+        wlShareEmails.add(email);
+        input.value = "";
+        await loadContactsAndGroups();
+      }catch(err){
+        console.error(err);
+        alert(`追加に失敗しました（${err.code || err.message}）`);
+      }
+    });
 
     document.getElementById("wl-add-contact-btn").addEventListener("click", async ()=>{
       const nickname = document.getElementById("wl-new-contact-nickname").value.trim();
@@ -1043,6 +1107,11 @@
         const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
         allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
         applyWishlistFilter();
+        if(pendingWishEditId){
+          const target = allWishItems.find(w=> w.id === pendingWishEditId);
+          if(target) startEditWishItem(target);
+          pendingWishEditId = null;
+        }
       }catch(e){
         console.error(e);
         document.getElementById("list").innerHTML =
