@@ -21,13 +21,18 @@
   }
   html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
   .font-display{ font-family:"Shippori Mincho",serif; }
-  h2.section-title{ font-family:"Shippori Mincho",serif; }
   .mock{ background:#fff; border:1px solid var(--line); border-radius:.75rem; }
-  .pin{ display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; border-radius:50% 50% 50% 0; transform:rotate(-45deg); }
+  .pin{ display:inline-flex; width:1rem; height:1rem; border-radius:50% 50% 50% 0; transform:rotate(-45deg); }
   .pin-official{ background:var(--shu); }
   .pin-wish{ background:var(--wish); }
-  .arrow-down{ width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:10px solid var(--line); margin:.25rem auto; }
   .step-num{ width:1.5rem; height:1.5rem; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; flex-shrink:0; }
+  details{ background:#fff; border:1px solid var(--line); border-radius:.75rem; overflow:hidden; }
+  summary{ cursor:pointer; list-style:none; padding:.9rem 1rem; font-weight:700; font-family:"Shippori Mincho",serif; font-size:1.05rem; display:flex; align-items:center; gap:.6rem; }
+  summary::-webkit-details-marker{ display:none; }
+  summary .chev{ margin-left:auto; transition:transform .15s; font-size:.8rem; opacity:.5; }
+  details[open] summary .chev{ transform:rotate(180deg); }
+  details .body{ padding:0 1rem 1rem; }
+  .icon-badge{ width:2rem; height:2rem; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -42,300 +47,172 @@
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 py-8 space-y-12">
+  <main class="max-w-3xl mx-auto px-4 py-8 space-y-4">
 
-    <!-- はじめに -->
-    <section>
-      <h2 class="section-title text-xl font-bold mb-2">おかログとは</h2>
-      <p class="text-sm leading-relaxed">
-        「本当に行って良かったお店」だけを厳選して載せる、身内・仲間内向けのグルメ検索サイトです。
-        大手グルメサイトのように誰でも書き込める口コミサイトではなく、
-        <b>本当に良いと思ったお店だけ</b>を載せる、という考え方で作っています。
-        あわせて、まだ行ったことはないけれど気になっている「行ってみたい店」も管理できます。
+    <!-- はじめに：2つのリスト -->
+    <section class="mb-4">
+      <p class="text-sm leading-relaxed mb-4">
+        「本当に行って良かったお店」だけを厳選して載せる、身内・仲間内向けのグルメサイトです。
+        気になっているだけの「行ってみたい店」も一緒に管理できます。タップで詳しく開けます👇
       </p>
-      <nav class="mock p-4 mt-4">
-        <p class="text-xs font-bold mb-2">目次</p>
-        <ol class="text-xs text-[var(--shu)] space-y-1 list-decimal list-inside">
-          <li><a href="#lists" class="underline underline-offset-2">2つのリストを使い分けよう</a></li>
-          <li><a href="#official" class="underline underline-offset-2">「実際に行って良かった店」の探し方</a></li>
-          <li><a href="#wishlist" class="underline underline-offset-2">「行ってみたい店」の使い方</a></li>
-          <li><a href="#roles" class="underline underline-offset-2">権限について（4段階）</a></li>
-          <li><a href="#login" class="underline underline-offset-2">ログイン・表示名について</a></li>
-          <li><a href="#mypage" class="underline underline-offset-2">マイページについて</a></li>
-          <li><a href="#mobile" class="underline underline-offset-2">スマホでもっと使いやすくする</a></li>
-          <li><a href="#faq" class="underline underline-offset-2">よくある質問</a></li>
-        </ol>
-      </nav>
-    </section>
-
-    <!-- 2つのリスト -->
-    <section id="lists">
-      <h2 class="section-title text-xl font-bold mb-3">2つのリストを使い分けよう</h2>
-      <p class="text-sm mb-4">ホーム画面の上部にあるタブで、2種類のリストを切り替えられます。</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div class="mock p-4" style="border-left:4px solid var(--shu)">
           <p class="font-bold text-sm" style="color:var(--shu)"><span class="pin pin-official"></span>&nbsp; 実際に行って良かった店</p>
-          <p class="text-xs mt-2 text-[var(--ink)]/70">実際に行って、本当に良かったお店の正式なリストです。地図には<b>赤いピン</b>で表示されます。誰でも検索・閲覧できます。</p>
+          <p class="text-xs mt-2 text-[var(--ink)]/70">本当に良かったお店の正式なリスト。地図は<b>赤ピン</b>。誰でも見られます。</p>
         </div>
         <div class="mock p-4" style="border-left:4px solid var(--wish)">
           <p class="font-bold text-sm" style="color:var(--wish)"><span class="pin pin-wish"></span>&nbsp; 行ってみたい店</p>
-          <p class="text-xs mt-2 text-[var(--ink)]/70">まだ行ったことがないけれど気になっているお店のメモリストです。地図には<b>青いピン</b>で表示されます。ログインすれば誰でも登録できます。</p>
+          <p class="text-xs mt-2 text-[var(--ink)]/70">気になっているお店のメモ。地図は<b>青ピン</b>。ログインすれば誰でも登録できます。</p>
         </div>
       </div>
     </section>
 
-    <!-- 実際に行って良かった店の使い方 -->
-    <section id="official">
-      <h2 class="section-title text-xl font-bold mb-3">「実際に行って良かった店」の探し方</h2>
-
-      <p class="text-sm font-bold mb-2">① 絞り込みは上から順番に</p>
-      <div class="mock p-4 mb-2">
-        <div class="flex flex-wrap gap-2 text-xs">
-          <span class="border border-[var(--line)] rounded-full px-3 py-1">都道府県</span>
-          <span class="border border-[var(--line)] rounded-full px-3 py-1">エリア</span>
-          <span class="border border-[var(--line)] rounded-full px-3 py-1">ジャンル</span>
-          <span class="border border-[var(--line)] rounded-full px-3 py-1">利用シーン</span>
-          <span class="border border-[var(--line)] rounded-full px-3 py-1 flex-1 min-w-[100px] text-[var(--ink)]/40">店名・特徴で検索</span>
+    <!-- 実際に行って良かった店 -->
+    <details open>
+      <summary><span class="icon-badge" style="background:var(--shu);color:#fff;">🔍</span> 実際に行って良かった店の探し方 <span class="chev">▾</span></summary>
+      <div class="body space-y-3 text-sm">
+        <ul class="space-y-1.5">
+          <li>📍 <b>都道府県 → エリア → ジャンル → シーン</b>の順に選ぶと、ボタン不要で自動的に一覧が絞り込まれます</li>
+          <li>🗺️ カードをタップすると地図が該当のお店にジャンプします</li>
+          <li>⭐ 星評価・おすすめポイント（編集者コメント）付きで見られます</li>
+          <li>🔗 参考リンクは「食べログ」「Instagram」など<b>複数まとめて</b>表示されます</li>
+          <li>💬 「口コミを見る・書く」はログインしていれば誰でも投稿できます</li>
+          <li>⚠️ 店名・住所を入力すると、既に同じお店が登録されていないか自動でチェックされます（支店違いならそのまま登録してOK）</li>
+        </ul>
+        <div class="mock p-3">
+          <p class="font-bold text-sm">お店の名前<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle ml-1">タグ</span></p>
+          <p class="text-xs text-[var(--ink)]/60">エリア名 ／ ジャンル</p>
+          <p class="text-sm" style="color:var(--kin)">★★★★☆</p>
+          <div class="flex gap-3 mt-1 text-xs" style="color:var(--shu)">
+            <span class="underline">Googleマップ</span><span class="underline">食べログ</span><span class="underline">Instagram</span>
+          </div>
         </div>
       </div>
-      <p class="text-xs text-[var(--ink)]/70 mb-4">
-        都道府県を選ぶと、その中の「エリア」（梅田・北新地など、繁華街レベルの単位）が選べるようになります。
-        選ぶたびに、<b>ボタンを押さなくても自動で</b>下の一覧が絞り込まれます。
-      </p>
+    </details>
 
-      <p class="text-sm font-bold mb-2">② 一覧カードの見方</p>
-      <div class="mock p-3 mb-2">
-        <p class="font-bold text-sm">お店の名前<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle ml-1">タグ</span></p>
-        <p class="text-xs text-[var(--ink)]/60">エリア名 ／ ジャンル</p>
-        <p class="text-sm" style="color:var(--kin)">★★★★☆</p>
-        <p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><b>おすすめポイント：</b>編集者・オーナーが書いたコメント</p>
-        <p class="text-xs text-[var(--ink)]/60 mt-2">住所</p>
-        <div class="flex gap-3 mt-1 text-xs" style="color:var(--shu)">
-          <span class="underline">Googleマップで見る</span><span class="underline">食べログ</span><span class="underline">Instagram</span>
+    <!-- 行ってみたい店 -->
+    <details open>
+      <summary><span class="icon-badge" style="background:var(--wish);color:#fff;">📝</span> 行ってみたい店の使い方 <span class="chev">▾</span></summary>
+      <div class="body space-y-4 text-sm">
+
+        <div class="flex items-start gap-3">
+          <span class="step-num" style="background:var(--wish); color:#fff;">1</span>
+          <p>店名・メモ・住所・参考リンクを入力して登録。<b>「匿名で登録する」</b>を付けると、誰が登録したか他の人には分かりません。</p>
         </div>
-        <div class="flex gap-3 mt-2 text-xs text-[var(--ink)]/70"><span class="underline">口コミを見る・書く</span></div>
-      </div>
-      <p class="text-xs text-[var(--ink)]/70">
-        カードをタップすると、右側（スマホでは下）の地図が該当のお店にジャンプします。
-        「口コミを見る・書く」は、ログインしていれば誰でも書き込めます（ニックネーム表示・文字のみ）。
-      </p>
-
-      <p class="text-sm font-bold mb-2 mt-4">③ 参考リンクは複数登録できます</p>
-      <p class="text-xs text-[var(--ink)]/70">
-        編集者・オーナーがお店を登録・編集するとき、「食べログ」「ホットペッパー」「Instagram」のように
-        <b>種類ごとにラベルを付けて、参考リンクを何個でも追加</b>できます。全体像が分かる情報サイトと、
-        雰囲気が分かるInstagramなど、目的に応じて使い分けられます。
-      </p>
-
-      <p class="text-sm font-bold mb-2 mt-4">④ 重複登録の警告</p>
-      <p class="text-xs text-[var(--ink)]/70">
-        店名や住所を入力すると、既に同じお店が登録されていないか自動でチェックされます。
-        同じ名前・ほぼ同じ場所（半径40m以内）の登録があると警告が出ますが、支店違いなどの場合は
-        そのまま登録して問題ありません（登録がブロックされることはありません）。
-      </p>
-    </section>
-
-    <!-- 行ってみたい店の使い方 -->
-    <section id="wishlist">
-      <h2 class="section-title text-xl font-bold mb-3">「行ってみたい店」の使い方</h2>
-
-      <div class="flex items-start gap-3 mb-3">
-        <span class="step-num" style="background:var(--wish); color:#fff;">1</span>
-        <div>
-          <p class="text-sm font-bold">気になるお店を登録する</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            「行ってみたい店」タブを開き、店名・メモ・住所（分かる範囲でOK）・参考リンク（食べログ・Instagramなど、複数可）を入力して登録します。
-            住所を入れると地図にも青いピンで表示されます。<b>「匿名で登録する」</b>にチェックすると、他の人には誰が登録したか分かりません（自分だけは分かります）。
-          </p>
+        <div class="flex items-start gap-3">
+          <span class="step-num" style="background:var(--wish); color:#fff;">2</span>
+          <div>
+            <p>友達に共有もできます。ログインすると自動で発行される<b>6桁の共有ID</b>（例：AB12CD）を、LINEなどでそのまま送れます。</p>
+            <p class="text-xs text-[var(--ink)]/60 mt-1">共有先パネルの「LINEなどで送る」ボタン → 相手が受け取ったIDを入力するだけ。メールアドレスのやり取りは不要です。</p>
+          </div>
         </div>
-      </div>
-      <div class="flex items-start gap-3 mb-3">
-        <span class="step-num" style="background:var(--wish); color:#fff;">2</span>
-        <div>
-          <p class="text-sm font-bold">気になる友達に共有する（任意）</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            誰でもログインすると、自動で6桁の<b>「共有ID」</b>（例：AB12CD）が発行されます。
-            友達にこの番号を伝えてもらい、登録・編集フォームの「共有先」で<b>共有IDを入力</b>すると、
-            メールアドレスを教え合うことなく共有できます。追加した相手は連絡先として保存され、次回はワンタップで選べます。
-            何人かまとめて選んで「グループ作成」しておけば、次からグループ単位で一括共有できます。
-            共有された相手は、「自分に共有された店」ボタンで自分宛てのものだけをすぐ確認できます。
-          </p>
+        <div class="flex items-start gap-3">
+          <span class="step-num" style="background:var(--wish); color:#fff;">3</span>
+          <p>誰かが行ったら「感想」を投稿。<b>「訪問済み」</b>になります。</p>
         </div>
-      </div>
-      <div class="flex items-start gap-3 mb-3">
-        <span class="step-num" style="background:var(--wish); color:#fff;">3</span>
-        <div>
-          <p class="text-sm font-bold">誰かが実際に行って、感想を投稿する</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            ログインしていれば誰でも、行ってみたい店に「感想」を書き込めます。感想を書くと「訪問済み」になります。
-          </p>
+        <div class="flex items-start gap-3">
+          <span class="step-num" style="background:var(--shu); color:#fff;">4</span>
+          <p>編集者・オーナーは<b>「実際に行って良かった店として登録する」</b>ボタンで、内容そのままに正式リストへ昇格できます（未訪問でもOK）。</p>
         </div>
+
+        <ul class="text-xs text-[var(--ink)]/70 space-y-1 pt-2 border-t border-[var(--line)]">
+          <li>✏️ 編集・削除は「登録した本人」と「オーナー」だけ</li>
+          <li>🔎 タブで絞り込み：すべて／自分が登録した店／自分に共有された店、すべて／未訪問／訪問済み</li>
+        </ul>
       </div>
-      <div class="flex items-start gap-3">
-        <span class="step-num" style="background:var(--shu); color:#fff;">4</span>
-        <div>
-          <p class="text-sm font-bold">気に入ったら、正式なお店リストへ</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            編集者・オーナーは、行ってみたい店のカードにある<b>「実際に行って良かった店として登録する」</b>ボタンから、
-            店名・メモ・住所・参考リンクの内容を引き継いだまま、正式なお店リストへ昇格登録できます。
-            訪問済み・未訪問どちらの状態でも使えます。
-          </p>
+    </details>
+
+    <!-- 権限 -->
+    <details>
+      <summary><span class="icon-badge" style="background:var(--kin);color:#fff;">🔑</span> 権限について（4段階） <span class="chev">▾</span></summary>
+      <div class="body">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead>
+              <tr class="bg-[var(--paper-dim)]">
+                <th class="text-left p-2 border border-[var(--line)]">できること</th>
+                <th class="p-2 border border-[var(--line)]">閲覧のみ</th>
+                <th class="p-2 border border-[var(--line)]">ログイン<br>ユーザー</th>
+                <th class="p-2 border border-[var(--line)]">編集者</th>
+                <th class="p-2 border border-[var(--line)]">オーナー</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="p-2 border border-[var(--line)]">検索・閲覧</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+              <tr><td class="p-2 border border-[var(--line)]">口コミ投稿</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+              <tr><td class="p-2 border border-[var(--line)]">行ってみたい店の登録</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+              <tr><td class="p-2 border border-[var(--line)]">実際に行って良かった店の登録・編集</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+              <tr><td class="p-2 border border-[var(--line)]">お店の削除</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">依頼のみ</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+              <tr><td class="p-2 border border-[var(--line)]">CSV一括取込・書き出し</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
+            </tbody>
+          </table>
         </div>
+        <p class="text-xs text-[var(--ink)]/60 mt-2">※編集者・オーナーへの昇格は、サイト管理者が個別に設定します。</p>
       </div>
+    </details>
 
-      <p class="text-xs text-[var(--ink)]/60 mt-4">
-        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。
-        カードの<b>「編集」</b>ボタンから、店名・メモ・住所・参考リンク・共有先をいつでも書き直せます。<br>
-        ※「すべて／自分が登録した店／自分に共有された店」「すべて／未訪問／訪問済み」のタブで、見たい範囲を絞り込めます。
-      </p>
-    </section>
-
-    <!-- 権限について -->
-    <section id="roles">
-      <h2 class="section-title text-xl font-bold mb-3">権限について（4段階）</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-xs border-collapse">
-          <thead>
-            <tr class="bg-[var(--paper-dim)]">
-              <th class="text-left p-2 border border-[var(--line)]">できること</th>
-              <th class="p-2 border border-[var(--line)]">閲覧のみ</th>
-              <th class="p-2 border border-[var(--line)]">ログインユーザー</th>
-              <th class="p-2 border border-[var(--line)]">編集者</th>
-              <th class="p-2 border border-[var(--line)]">オーナー</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td class="p-2 border border-[var(--line)]">検索・閲覧</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-            <tr><td class="p-2 border border-[var(--line)]">口コミ投稿</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-            <tr><td class="p-2 border border-[var(--line)]">行ってみたい店の登録</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-            <tr><td class="p-2 border border-[var(--line)]">実際に行って良かった店の登録・編集</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-            <tr><td class="p-2 border border-[var(--line)]">お店の削除</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">依頼のみ</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-            <tr><td class="p-2 border border-[var(--line)]">CSV一括取込・書き出し</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">－</td><td class="text-center p-2 border border-[var(--line)]">○</td></tr>
-          </tbody>
-        </table>
+    <!-- ログイン -->
+    <details>
+      <summary><span class="icon-badge" style="background:var(--ink);color:#fff;">👤</span> ログイン・表示名について <span class="chev">▾</span></summary>
+      <div class="body">
+        <ul class="text-sm space-y-1.5">
+          <li>🔐 右上「Googleでログイン」だけ。パスワード不要</li>
+          <li>✏️ 「表示名を変更」で、口コミ等に出るニックネームを自由に設定</li>
+        </ul>
       </div>
-      <p class="text-xs text-[var(--ink)]/60 mt-2">
-        ※「ログインユーザー」は、Googleでログインしただけの一般の人です。編集者・オーナーへの昇格は、サイト管理者が個別に設定します。
-      </p>
-    </section>
-
-    <!-- ログイン・表示名 -->
-    <section id="login">
-      <h2 class="section-title text-xl font-bold mb-3">ログイン・表示名について</h2>
-      <p class="text-sm leading-relaxed">
-        画面右上の「Googleでログイン」から、お使いのGoogleアカウントでログインできます。パスワードを新しく覚える必要はありません。
-        ログイン後、右上の「表示名を変更」から、口コミや行ってみたい店リストに表示される名前（ニックネーム）を自由に設定できます。
-      </p>
-    </section>
+    </details>
 
     <!-- マイページ -->
-    <section id="mypage">
-      <h2 class="section-title text-xl font-bold mb-3">マイページについて</h2>
-      <p class="text-sm leading-relaxed mb-3">
-        ログイン中は、画面右上に「マイページ」というリンクが表示されます。ここでは以下のことがまとめて確認・管理できます。
-      </p>
-      <ul class="text-xs text-[var(--ink)]/70 space-y-1.5 list-disc list-inside">
-        <li>表示名の変更、自分の<b>共有ID</b>の確認・コピー</li>
-        <li>連絡先（友達）・グループの一覧管理（共有IDでの追加・削除）</li>
-        <li>連絡先ごとの「呼び方」を自分用に変更（相手本人の表示名は変わりません）</li>
-        <li>自分が登録した「行ってみたい店」の一覧確認・編集・削除</li>
-      </ul>
-    </section>
+    <details>
+      <summary><span class="icon-badge" style="background:var(--wish);color:#fff;">🏠</span> マイページについて <span class="chev">▾</span></summary>
+      <div class="body">
+        <p class="text-sm mb-2">ログイン中は右上に「マイページ」リンクが出ます。ここでできること：</p>
+        <ul class="text-sm space-y-1.5">
+          <li>✏️ 表示名の変更、共有IDの確認・共有・コピー</li>
+          <li>👥 連絡先（友達）・グループの管理（共有IDで追加、呼び方も自分用に変更可）</li>
+          <li>📋 自分が登録した「行ってみたい店」の一覧・編集・削除</li>
+        </ul>
+      </div>
+    </details>
 
-    <!-- スマホで使いやすくする -->
-    <section id="mobile">
-      <h2 class="section-title text-xl font-bold mb-2">スマホでもっと使いやすくする</h2>
-      <p class="text-sm leading-relaxed mb-4">
-        おかログはアプリではなく「Webサイト」なので、App StoreやGoogle Playからのインストールはできません。
-        ただし、スマホの機能を使って<b>ホーム画面にアイコンを追加</b>すると、アプリのように
-        ワンタップで開けるようになり、ブラウザの住所バーなども表示されずすっきり使えます。<br>
-        一度設定しておくと、次回からとても楽になるのでおすすめです。
-      </p>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="mock p-4">
-          <p class="font-bold text-sm mb-2"> iPhone・iPad（Safari）</p>
-          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
-            <li>おかログを Safari で開く</li>
-            <li>画面下（またはアドレスバー横）の<b>共有ボタン</b>（四角から矢印が出ているアイコン）をタップ</li>
-            <li>メニューを下にスクロールし、<b>「ホーム画面に追加」</b>をタップ</li>
-            <li>名前を確認して右上の「追加」をタップ</li>
-          </ol>
-        </div>
-
-        <div class="mock p-4">
-          <p class="font-bold text-sm mb-2"> iPhone・iPad（Chrome）</p>
-          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
-            <li>おかログを Chrome で開く</li>
-            <li>画面下部の<b>共有ボタン</b>（四角から矢印が出ているアイコン）をタップ</li>
-            <li>メニューから<b>「ホーム画面に追加」</b>を選択</li>
-            <li>「追加」をタップ</li>
-          </ol>
-          <p class="text-[10px] text-[var(--ink)]/50 mt-2">※iPhoneではChromeもSafariと同じ仕組みの共有メニューを使います。</p>
-        </div>
-
-        <div class="mock p-4">
-          <p class="font-bold text-sm mb-2"> Android（Chrome）</p>
-          <ol class="text-xs text-[var(--ink)]/80 space-y-1.5 list-decimal list-inside">
-            <li>おかログを Chrome で開く</li>
-            <li>右上の<b>⋮（縦三点リーダー）</b>をタップ</li>
-            <li><b>「ホーム画面に追加」</b>または<b>「アプリをインストール」</b>をタップ</li>
-            <li>「インストール」または「追加」をタップ</li>
-          </ol>
-          <p class="text-[10px] text-[var(--ink)]/50 mt-2">※機種によっては、開いた時点で「インストールしますか？」というバナーが自動で出ることもあります。</p>
-        </div>
-
-        <div class="mock p-4">
-          <p class="font-bold text-sm mb-2"> 追加すると、こう変わります</p>
-          <ul class="text-xs text-[var(--ink)]/80 space-y-1.5 list-disc list-inside">
-            <li>ホーム画面のアイコンをタップするだけで起動</li>
-            <li>ブラウザのアドレスバーが表示されず、アプリのような画面に</li>
-            <li>ログイン状態もそのまま保持されます</li>
-          </ul>
+    <!-- スマホ -->
+    <details>
+      <summary><span class="icon-badge" style="background:var(--shu);color:#fff;">📱</span> スマホでもっと使いやすくする <span class="chev">▾</span></summary>
+      <div class="body space-y-3">
+        <p class="text-sm">ホーム画面にアイコンを追加すると、アドレスバーなしでアプリのように開けます。</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="mock p-3">
+            <p class="font-bold text-xs mb-1">📲 iPhone・iPad（Safari／Chrome）</p>
+            <ol class="text-xs text-[var(--ink)]/80 space-y-1 list-decimal list-inside">
+              <li>共有ボタン（□に↑）をタップ</li>
+              <li>「ホーム画面に追加」を選択</li>
+              <li>「追加」をタップ</li>
+            </ol>
+          </div>
+          <div class="mock p-3">
+            <p class="font-bold text-xs mb-1">🤖 Android（Chrome）</p>
+            <ol class="text-xs text-[var(--ink)]/80 space-y-1 list-decimal list-inside">
+              <li>右上「⋮」をタップ</li>
+              <li>「ホーム画面に追加／アプリをインストール」</li>
+              <li>「インストール」をタップ</li>
+            </ol>
+          </div>
         </div>
       </div>
-    </section>
+    </details>
 
-    <!-- よくある質問 -->
-    <section id="faq">
-      <h2 class="section-title text-xl font-bold mb-3">よくある質問</h2>
-      <div class="space-y-3 text-sm">
-        <div>
-          <p class="font-bold">Q. 行ってみたい店に「匿名で登録する」を付けたのに、後から見返すには？</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 「行ってみたい店」タブの「自分が登録した店」ボタンを押すと、匿名にしていても自分の登録だけを絞り込んで確認できます。</p>
-        </div>
-        <div>
-          <p class="font-bold">Q. 地図にピンが表示されないお店がある</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 住所から地図上の位置がうまく特定できなかった可能性があります。編集画面から住所を見直して保存し直すと直ることがあります。</p>
-        </div>
-        <div>
-          <p class="font-bold">Q. 削除依頼をしたのに反映されない</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">A. 削除の実行はオーナーだけが行えます。依頼が出ると、そのお店のカードにオーナーだけに見える「削除依頼あり」の表示が出るので、確認をお待ちください。</p>
-        </div>
-        <div>
-          <p class="font-bold">Q. 「Googleでログイン」を押すと「アクセスをブロック」というエラーが出る</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            A. LINEやInstagramなどのアプリ内リンクから開いた場合に起きやすいエラーです。Googleのセキュリティ方針で、
-            アプリ内の簡易ブラウザからのログインがブロックされています。画面右上のメニュー（⋮や共有アイコンなど）から
-            「ブラウザで開く」「Safariで開く」を選んで、SafariやChromeなど通常のブラウザで開き直してから、もう一度お試しください。
-          </p>
-        </div>
-        <div>
-          <p class="font-bold">Q. 友達の共有IDを入力しても「見つかりませんでした」と出る</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            A. 共有IDは、友達がおかログに一度もログインしていないと発行されません。まず友達にログインしてもらい、
-            マイページに表示される共有IDを確認・共有してもらってください。番号の間違い（0とO、1とIなど）にもご注意ください。
-          </p>
-        </div>
-        <div>
-          <p class="font-bold">Q. 登録済みのお店の内容を書き直したい</p>
-          <p class="text-xs text-[var(--ink)]/70 mt-1">
-            A. 「実際に行って良かった店」は編集者・オーナーがカードの「編集」ボタンから、「行ってみたい店」は
-            登録した本人かオーナーがカードの「編集」ボタンから、いつでも内容を書き直せます。
-          </p>
-        </div>
+    <!-- FAQ -->
+    <details>
+      <summary><span class="icon-badge" style="background:var(--kin);color:#fff;">❓</span> よくある質問 <span class="chev">▾</span></summary>
+      <div class="body space-y-3 text-sm">
+        <div><p class="font-bold">Q. 匿名登録した自分の店を見返すには？</p><p class="text-xs text-[var(--ink)]/70">A. 「行ってみたい店」の「自分が登録した店」タブで確認できます。</p></div>
+        <div><p class="font-bold">Q. 地図にピンが出ないお店がある</p><p class="text-xs text-[var(--ink)]/70">A. 住所から位置を特定できなかった可能性があります。編集画面で住所を見直して保存し直してください。</p></div>
+        <div><p class="font-bold">Q. 削除依頼が反映されない</p><p class="text-xs text-[var(--ink)]/70">A. 削除の実行はオーナーのみ行えます。オーナー側のカードに「削除依頼あり」と表示され、確認をお待ちいただく形です。</p></div>
+        <div><p class="font-bold">Q. ログインで「アクセスをブロック」と出る</p><p class="text-xs text-[var(--ink)]/70">A. LINE等のアプリ内ブラウザで開くとGoogle側の制限でブロックされます。メニューから「ブラウザで開く」を選んで開き直してください。</p></div>
+        <div><p class="font-bold">Q. 友達の共有IDが見つからないと出る</p><p class="text-xs text-[var(--ink)]/70">A. 友達が一度もログインしていないとID未発行です。先にログインしてもらい、マイページのIDを送ってもらってください。</p></div>
+        <div><p class="font-bold">Q. 登録済みのお店の内容を書き直したい</p><p class="text-xs text-[var(--ink)]/70">A. カードの「編集」ボタンからいつでも書き直せます。</p></div>
       </div>
-    </section>
+    </details>
 
   </main>
 

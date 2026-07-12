@@ -116,6 +116,7 @@
             <p class="text-xs font-bold">共有先（任意・共有IDを知っている人だけと共有できます）</p>
             <p class="text-[10px] text-[var(--ink)]/50">
               あなたの共有ID：<b id="wl-my-share-id">-</b>
+              <button type="button" id="wl-share-share-id" class="underline underline-offset-2 text-[var(--wish)] ml-1">LINEなどで送る</button>
               <button type="button" id="wl-copy-share-id" class="underline underline-offset-2 text-[var(--wish)] ml-1">コピー</button>
               （この番号を友達に伝えると、あなたのメールアドレスを教えずに共有してもらえます）
             </p>
@@ -914,6 +915,28 @@
       const idEl = document.getElementById("wl-my-share-id");
       if(idEl) idEl.textContent = currentShareId || "-";
     }
+    function shareShareIdText(){
+      return `【おかログ】私の共有IDは「${currentShareId}」です。\nこのIDを「行ってみたい店」の共有先に追加すると、お店を教え合えます。\n${location.origin}${location.pathname}`;
+    }
+    async function shareMyShareId(){
+      if(!currentShareId) return;
+      if(navigator.share){
+        try{
+          await navigator.share({ title: "おかログ 共有ID", text: shareShareIdText() });
+          return;
+        }catch(e){
+          if(e.name === "AbortError") return; // ユーザーが共有をキャンセルしただけ
+        }
+      }
+      // Web Share API非対応の場合はコピーにフォールバック
+      try{
+        await navigator.clipboard.writeText(shareShareIdText());
+        alert("共有メッセージをコピーしました。LINEやメッセージアプリに貼り付けて送ってください。");
+      }catch(e){
+        prompt("この内容をコピーして送ってください", shareShareIdText());
+      }
+    }
+    document.getElementById("wl-share-share-id").addEventListener("click", shareMyShareId);
     document.getElementById("wl-copy-share-id").addEventListener("click", async ()=>{
       if(!currentShareId) return;
       try{

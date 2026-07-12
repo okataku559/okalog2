@@ -57,6 +57,7 @@
           </p>
           <p class="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
             あなたの共有ID：<span id="pf-share-id" class="font-bold text-[var(--wish)]"></span>
+            <button id="pf-share-share-id" class="text-xs underline underline-offset-2 text-[var(--wish)]">LINEなどで送る</button>
             <button id="pf-copy-share-id" class="text-xs underline underline-offset-2 text-[var(--wish)]">コピー</button>
           </p>
           <p class="text-xs text-[var(--ink)]/60">
@@ -165,6 +166,22 @@
       if(!next) return;
       await updateDoc(doc(db,"users",currentUser.uid), { displayName: next });
       currentNickname = next; renderProfile();
+    });
+    function shareShareIdText(){
+      return `【おかログ】私の共有IDは「${currentShareId}」です。\nこのIDを「行ってみたい店」の共有先に追加すると、お店を教え合えます。\n${location.origin}/index.html`;
+    }
+    document.getElementById("pf-share-share-id").addEventListener("click", async ()=>{
+      if(!currentShareId) return;
+      if(navigator.share){
+        try{ await navigator.share({ title: "おかログ 共有ID", text: shareShareIdText() }); return; }
+        catch(e){ if(e.name === "AbortError") return; }
+      }
+      try{
+        await navigator.clipboard.writeText(shareShareIdText());
+        alert("共有メッセージをコピーしました。LINEやメッセージアプリに貼り付けて送ってください。");
+      }catch(e){
+        prompt("この内容をコピーして送ってください", shareShareIdText());
+      }
     });
     document.getElementById("pf-copy-share-id").addEventListener("click", async ()=>{
       try{ await navigator.clipboard.writeText(currentShareId); alert(`共有ID「${currentShareId}」をコピーしました。`); }
