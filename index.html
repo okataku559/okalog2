@@ -85,10 +85,55 @@
         <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
-        <button id="btn-add-store" class="hidden btn-primary rounded-full px-3 py-1.5 text-sm shrink-0">＋ お店を登録する</button>
       </div>
     </div>
   </section>
+
+  <!-- お店の登録・編集（「実際に行って良かった店」モード・編集者以上のみ表示） -->
+  <section id="official-form-section" class="hidden border-b border-[var(--line)] bg-[var(--paper)]">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <details id="sf-form-details" class="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+        <summary class="cursor-pointer select-none px-3 py-2.5 flex items-center justify-between gap-2">
+          <span id="store-dialog-title" class="font-bold text-xs">＋ 実際に行って良かった店を登録する</span>
+          <span class="text-[var(--ink)]/40 text-xs">タップで開閉 ▾</span>
+        </summary>
+        <form id="store-form" class="px-3 pb-3 space-y-2 border-t border-[var(--line)] pt-2">
+          <input type="hidden" id="sf-id">
+          <label class="block text-xs font-bold">店名<input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <p id="sf-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
+          <label class="block text-xs font-bold">ジャンル
+            <select id="sf-genre" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></select>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-xs font-bold">都道府県<input required id="sf-pref" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+            <label class="block text-xs font-bold">市区町村<input required id="sf-city" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          </div>
+          <label class="block text-xs font-bold">エリア（例：梅田・北新地・中之島）<input required id="sf-area" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <label class="block text-xs font-bold">住所（地図ピンに使われます）<input required id="sf-address" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <p id="sf-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
+          <label class="block text-xs font-bold">満足度（1〜5）
+            <select id="sf-taste" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
+              <option value="0">未評価</option><option value="1">1</option><option value="2">2</option>
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </label>
+          <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
+          <label class="block text-xs font-bold">おすすめポイント（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
+          <div>
+            <p class="text-xs font-bold mb-1">参考リンク（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
+            <div id="sf-links" class="space-y-1"></div>
+            <button type="button" id="sf-links-add" class="text-xs underline underline-offset-2 text-[var(--shu)] mt-1">＋ リンクを追加</button>
+          </div>
+          <p id="sf-status" class="text-xs text-[var(--shu)]"></p>
+          <div class="flex gap-2 pt-2">
+            <button type="submit" id="sf-submit" class="text-sm px-4 py-1.5 rounded-full btn-primary">保存する</button>
+            <button type="button" id="sf-cancel" class="hidden text-sm px-3 py-1.5 rounded-full border border-[var(--line)]">編集をキャンセル</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  </section>
+
 
   <!-- 登録・絞り込み（「行ってみたい店」モード） -->
   <section id="wishlist-controls" class="hidden border-b border-[var(--line)] bg-[var(--paper)]">
@@ -110,6 +155,17 @@
           <p id="wl-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
           <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
+          <label class="block text-xs font-bold">ジャンル（任意）
+            <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="wl-pref" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+            <select id="wl-area" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          </div>
+          <div>
+            <p class="text-xs font-bold mb-1">利用シーン（任意）</p>
+            <div id="wl-scenes" class="flex flex-wrap gap-1.5"></div>
+          </div>
           <input id="wl-address" type="text" placeholder="住所（任意・分かる範囲でOK。地図に表示されます）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
           <p id="wl-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
@@ -153,6 +209,14 @@
           </div>
         </details>
         <div class="flex flex-wrap gap-2">
+          <select id="wl-f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="wl-f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="wl-f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="wl-f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <input id="wl-f-keyword" type="text" placeholder="店名・メモで検索"
+                 class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
+        </div>
+        <div class="flex flex-wrap gap-2">
           <div class="flex gap-1.5" id="filter-mine">
             <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
             <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
@@ -184,65 +248,6 @@
       <div id="map" class="w-full h-[calc(100vh-260px)] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
     </section>
   </main>
-
-  <!-- お店 追加/編集 モーダル（実際に行って良かった店） -->
-  <dialog id="store-dialog" class="w-[92vw] max-w-lg">
-    <form method="dialog" id="store-form" class="p-4 space-y-2 max-h-[85vh] overflow-y-auto">
-      <h2 id="store-dialog-title" class="font-bold text-lg mb-2">実際に行って良かった店を登録</h2>
-      <input type="hidden" id="sf-id">
-      <label class="block text-xs font-bold">店名<input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-      <p id="sf-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
-      <label class="block text-xs font-bold">ジャンル
-        <select id="sf-genre" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></select>
-      </label>
-      <div class="grid grid-cols-2 gap-2">
-        <label class="block text-xs font-bold">都道府県<input required id="sf-pref" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-        <label class="block text-xs font-bold">市区町村<input required id="sf-city" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-      </div>
-      <label class="block text-xs font-bold">エリア（例：梅田・北新地・中之島）<input required id="sf-area" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-      <label class="block text-xs font-bold">住所（地図ピンに使われます）<input required id="sf-address" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-      <p id="sf-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
-      <label class="block text-xs font-bold">満足度（1〜5）
-        <select id="sf-taste" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
-          <option value="0">未評価</option><option value="1">1</option><option value="2">2</option>
-          <option value="3">3</option><option value="4">4</option><option value="5">5</option>
-        </select>
-      </label>
-      <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
-      <label class="block text-xs font-bold">おすすめポイント（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
-      <div>
-        <p class="text-xs font-bold mb-1">参考リンク（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
-        <div id="sf-links" class="space-y-1"></div>
-        <button type="button" id="sf-links-add" class="text-xs underline underline-offset-2 text-[var(--shu)] mt-1">＋ リンクを追加</button>
-      </div>
-      <p id="sf-status" class="text-xs text-[var(--shu)]"></p>
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" id="sf-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)]">キャンセル</button>
-        <button type="submit" id="sf-submit" class="text-sm px-4 py-1.5 rounded-full btn-primary">保存する</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- お店の登録タイプ選択ダイアログ -->
-  <dialog id="type-dialog" class="w-[92vw] max-w-sm">
-    <div class="p-4 space-y-3">
-      <h2 class="font-bold text-base">どちらで登録しますか？</h2>
-      <button id="type-wishlist" class="w-full text-left border border-[var(--line)] rounded-lg p-3 hover:bg-[var(--paper-dim)]">
-        <span class="font-bold text-sm">行ってみたい店</span>
-        <p class="text-xs text-[var(--ink)]/60 mt-1">まだ行ったことがないけれど気になっているお店。誰でも登録できます。あとで実際に行った人が感想を書き込めます。</p>
-      </button>
-      <button id="type-official" class="w-full text-left border border-[var(--line)] rounded-lg p-3 hover:bg-[var(--paper-dim)]">
-        <span class="font-bold text-sm">実際に行って良かった店</span>
-        <p class="text-xs text-[var(--ink)]/60 mt-1">実際に行って、本当に良かったお店。検索・地図に正式に載ります（編集者・オーナーのみ登録できます）。</p>
-      </button>
-      <button type="button" id="type-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)] w-full">キャンセル</button>
-    </div>
-  </dialog>
-
-  <datalist id="link-label-presets">
-    <option value="食べログ"><option value="ホットペッパー"><option value="ぐるなび">
-    <option value="Instagram"><option value="公式サイト"><option value="予約サイト">
-  </datalist>
 
   <script type="module">
     import { db, auth, googleProvider } from "./firebase-init.js";
@@ -319,7 +324,7 @@
 
     function renderAuthArea(){
       const box = document.getElementById("auth-area");
-      const btnAdd = document.getElementById("btn-add-store");
+      const formSection = document.getElementById("official-form-section");
       if(currentUser){
         box.innerHTML = `
           <a href="mypage.html" class="underline underline-offset-2">マイページ</a>
@@ -328,11 +333,11 @@
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
         document.getElementById("btn-nickname").addEventListener("click", changeNickname);
         document.getElementById("btn-logout").addEventListener("click", ()=> signOut(auth));
-        btnAdd.classList.remove("hidden"); // ログインしていれば誰でも登録の入口を見せる（種類はダイアログで選ぶ）
+        formSection.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
         document.getElementById("btn-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
-        btnAdd.classList.add("hidden");
+        formSection.classList.add("hidden");
       }
       renderWishlistAuthState();
     }
@@ -372,6 +377,8 @@
       document.querySelectorAll(".mode-tab").forEach(t=> t.dataset.active = (t.dataset.mode === mode));
       document.getElementById("official-controls").classList.toggle("hidden", mode !== "official");
       document.getElementById("wishlist-controls").classList.toggle("hidden", mode !== "wishlist");
+      const canEditOfficial = currentRole === "owner" || currentRole === "editor";
+      document.getElementById("official-form-section").classList.toggle("hidden", !(mode === "official" && canEditOfficial));
       if(mode === "official"){
         applyFilters();
       }else{
@@ -705,28 +712,42 @@
     // ---------------------------------------------------------------
     // お店 追加・編集モーダル（実際に行って良かった店）
     // ---------------------------------------------------------------
-    const dialog = document.getElementById("store-dialog");
+    const sfDetails = document.getElementById("sf-form-details");
     // ---------------------------------------------------------------
     // 複数リンク（食べログ／ホットペッパー／Instagram等）の共通ヘルパー
     // ---------------------------------------------------------------
+    const LINK_LABEL_PRESETS = ["食べログ","ホットペッパー","ぐるなび","Instagram","公式サイト","予約サイト"];
     function addLinkRow(container, label, url){
+      const isCustom = !!label && !LINK_LABEL_PRESETS.includes(label);
       const row = document.createElement("div");
-      row.className = "flex gap-1 items-center";
+      row.className = "flex gap-1 items-center flex-wrap";
       row.innerHTML = `
-        <input list="link-label-presets" placeholder="種類（食べログ等）" value="${label||""}"
-               class="w-28 shrink-0 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="link-label">
+        <select class="w-24 shrink-0 border border-[var(--line)] rounded px-1 py-1.5 text-xs bg-white" data-role="link-label-select">
+          ${LINK_LABEL_PRESETS.map(p=>`<option value="${p}"${label===p?" selected":""}>${p}</option>`).join("")}
+          <option value="__custom__"${isCustom?" selected":""}>その他（自由入力）</option>
+        </select>
+        <input type="text" placeholder="種類名を入力" value="${isCustom?label:""}"
+               class="${isCustom?"":"hidden"} w-24 shrink-0 border border-[var(--line)] rounded px-1 py-1 text-xs" data-role="link-label-custom">
         <input type="text" placeholder="URL" value="${url||""}"
-               class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="link-url">
+               class="flex-1 min-w-[100px] border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="link-url">
         <button type="button" class="text-xs text-[var(--shu)] shrink-0 px-1" data-role="link-remove">✕</button>
       `;
+      const sel = row.querySelector('[data-role="link-label-select"]');
+      const customInput = row.querySelector('[data-role="link-label-custom"]');
+      sel.addEventListener("change", ()=>{
+        customInput.classList.toggle("hidden", sel.value !== "__custom__");
+        if(sel.value === "__custom__") customInput.focus();
+      });
       row.querySelector('[data-role="link-remove"]').addEventListener("click", ()=> row.remove());
       container.appendChild(row);
     }
     function collectLinks(container){
-      return [...container.querySelectorAll(":scope > div")].map(row=>({
-        label: row.querySelector('[data-role="link-label"]').value.trim(),
-        url: row.querySelector('[data-role="link-url"]').value.trim(),
-      })).filter(l=> l.url);
+      return [...container.querySelectorAll(":scope > div")].map(row=>{
+        const selVal = row.querySelector('[data-role="link-label-select"]').value;
+        const customVal = row.querySelector('[data-role="link-label-custom"]').value.trim();
+        const label = selVal === "__custom__" ? customVal : selVal;
+        return { label, url: row.querySelector('[data-role="link-url"]').value.trim() };
+      }).filter(l=> l.url);
     }
     // 旧データ（単一のurl／referenceUrl文字列）との後方互換：
     // linksがあればそれを使い、なければ古い単一フィールドを1件のリンクとして扱う
@@ -807,16 +828,37 @@
       const sceneBox = document.getElementById("sf-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
     }
+    function fillWishlistFormAreaSelect(){
+      const pref = document.getElementById("wl-pref").value;
+      const areaSel = document.getElementById("wl-area");
+      if(!pref){
+        areaSel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
+        areaSel.disabled = true;
+      }else{
+        const areas = [...new Set(Object.values(AREA_TREE[pref]).flat())];
+        areaSel.innerHTML = `<option value="">エリア（任意）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+        areaSel.disabled = false;
+      }
+    }
+    function fillWishlistFormOptions(){
+      document.getElementById("wl-genre").innerHTML = `<option value="">ジャンル（任意）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
+      document.getElementById("wl-pref").innerHTML = `<option value="">都道府県（任意）</option>` + Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
+      const sceneBox = document.getElementById("wl-scenes");
+      sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
+      fillWishlistFormAreaSelect();
+    }
+    document.getElementById("wl-pref").addEventListener("change", fillWishlistFormAreaSelect);
     function openStoreModal(store, prefill){
-      document.getElementById("store-dialog-title").textContent = store ? "お店を編集" : "実際に行って良かった店を登録";
+      document.getElementById("store-dialog-title").textContent = store ? "「" + store.name + "」を編集する" : "＋ 実際に行って良かった店を登録する";
+      document.getElementById("sf-cancel").classList.toggle("hidden", !store);
       document.getElementById("sf-name-warning").classList.add("hidden");
       document.getElementById("sf-address-warning").classList.add("hidden");
       document.getElementById("sf-id").value = store?.id || "";
       document.getElementById("sf-name").value = store?.name || prefill?.name || "";
-      document.getElementById("sf-genre").value = store?.genre || GENRES[0];
-      document.getElementById("sf-pref").value = store?.prefecture || "";
+      document.getElementById("sf-genre").value = store?.genre || prefill?.genre || GENRES[0];
+      document.getElementById("sf-pref").value = store?.prefecture || prefill?.prefecture || "";
       document.getElementById("sf-city").value = store?.city || "";
-      document.getElementById("sf-area").value = store?.area || "";
+      document.getElementById("sf-area").value = store?.area || prefill?.area || "";
       document.getElementById("sf-address").value = store?.address || prefill?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
@@ -837,7 +879,12 @@
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
       showNameWarning("sf-name-warning", document.getElementById("sf-name").value, { excludeStoreId: store?.id });
       switchMode("official");
-      dialog.showModal();
+      sfDetails.open = true;
+      sfDetails.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+    function resetStoreForm(){
+      openStoreModal(null);
+      sfDetails.open = false;
     }
     document.getElementById("sf-links-add").addEventListener("click", ()=>{
       addLinkRow(document.getElementById("sf-links"), "", "");
@@ -848,23 +895,7 @@
     document.getElementById("sf-address").addEventListener("blur", (e)=>{
       checkAddressDuplicate("sf-address-warning", e.target.value.trim(), { excludeStoreId: document.getElementById("sf-id").value });
     });
-    const typeDialog = document.getElementById("type-dialog");
-    document.getElementById("btn-add-store").addEventListener("click", ()=> typeDialog.showModal());
-    document.getElementById("type-cancel").addEventListener("click", ()=> typeDialog.close());
-    document.getElementById("type-wishlist").addEventListener("click", ()=>{
-      typeDialog.close();
-      switchMode("wishlist");
-      document.getElementById("wl-name")?.focus();
-    });
-    document.getElementById("type-official").addEventListener("click", ()=>{
-      typeDialog.close();
-      if(currentRole === "owner" || currentRole === "editor"){
-        openStoreModal(null);
-      }else{
-        alert("「実際に行って良かった店」の正式登録は、編集者・オーナーのみ行えます。\nまずは「行ってみたい店」として登録し、確認をお待ちください。");
-      }
-    });
-    document.getElementById("sf-cancel").addEventListener("click", ()=> dialog.close());
+    document.getElementById("sf-cancel").addEventListener("click", resetStoreForm);
 
     async function nextCurationNo(){
       const snap = await getDocs(query(collection(db,"restaurants"), orderBy("curationNo","desc"), limit(1)));
@@ -913,7 +944,7 @@
         data.curationNo = await nextCurationNo();
         await addDoc(collection(db,"restaurants"), data);
       }
-      dialog.close();
+      resetStoreForm();
       await loadStoresAndRefresh();
     });
 
@@ -921,7 +952,7 @@
     // 行ってみたい店
     // ---------------------------------------------------------------
     let allWishItems = [];
-    const wlFilter = { mine: "all", status: "all" };
+    const wlFilter = { mine: "all", status: "all", pref: "", area: "", genre: "", scene: "", keyword: "" };
 
     function setupTabGroup(containerId, key, cb){
       const box = document.getElementById(containerId);
@@ -936,6 +967,37 @@
     }
     setupTabGroup("filter-mine", "mine", ()=> applyWishlistFilter());
     setupTabGroup("filter-status", "status", ()=> applyWishlistFilter());
+
+    // 絞り込み用セレクト（都道府県・エリア・ジャンル・シーン）
+    function fillWishlistFilterSelects(){
+      const prefSel = document.getElementById("wl-f-pref");
+      prefSel.innerHTML = `<option value="">都道府県（すべて）</option>` +
+        Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
+      prefSel.value = wlFilter.pref;
+      const areaSel = document.getElementById("wl-f-area");
+      if(!wlFilter.pref){
+        areaSel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
+        areaSel.disabled = true;
+      }else{
+        const areas = [...new Set(Object.values(AREA_TREE[wlFilter.pref]).flat())];
+        areaSel.innerHTML = `<option value="">エリア（すべて）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+        areaSel.disabled = false; areaSel.value = wlFilter.area;
+      }
+      document.getElementById("wl-f-genre").innerHTML = `<option value="">ジャンル（すべて）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
+      document.getElementById("wl-f-genre").value = wlFilter.genre;
+      document.getElementById("wl-f-scene").innerHTML = `<option value="">利用シーン（すべて）</option>` + SCENES.map(s=>`<option value="${s}">${s}</option>`).join("");
+      document.getElementById("wl-f-scene").value = wlFilter.scene;
+      document.getElementById("wl-f-keyword").value = wlFilter.keyword;
+    }
+    fillWishlistFilterSelects();
+    document.getElementById("wl-f-pref").addEventListener("change", e=>{
+      wlFilter.pref = e.target.value; wlFilter.area = "";
+      fillWishlistFilterSelects(); applyWishlistFilter();
+    });
+    document.getElementById("wl-f-area").addEventListener("change", e=>{ wlFilter.area = e.target.value; applyWishlistFilter(); });
+    document.getElementById("wl-f-genre").addEventListener("change", e=>{ wlFilter.genre = e.target.value; applyWishlistFilter(); });
+    document.getElementById("wl-f-scene").addEventListener("change", e=>{ wlFilter.scene = e.target.value; applyWishlistFilter(); });
+    document.getElementById("wl-f-keyword").addEventListener("input", e=>{ wlFilter.keyword = e.target.value; applyWishlistFilter(); });
 
     // ---------------------------------------------------------------
     // 連絡先（友達）・グループ・共有先の選択
@@ -1086,6 +1148,10 @@
       document.getElementById("wl-edit-id").value = "";
       document.getElementById("wl-name").value = "";
       document.getElementById("wl-memo").value = "";
+      document.getElementById("wl-genre").value = "";
+      document.getElementById("wl-pref").value = "";
+      fillWishlistFormAreaSelect();
+      document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = false);
       document.getElementById("wl-address").value = "";
       const wlLinksBox = document.getElementById("wl-links");
       wlLinksBox.innerHTML = "";
@@ -1114,6 +1180,12 @@
       document.getElementById("wl-edit-id").value = item.id;
       document.getElementById("wl-name").value = item.name || "";
       document.getElementById("wl-memo").value = item.memo || "";
+      document.getElementById("wl-genre").value = item.genre || "";
+      document.getElementById("wl-pref").value = item.prefecture || "";
+      fillWishlistFormAreaSelect();
+      document.getElementById("wl-area").value = item.area || "";
+      const selectedWlScenes = new Set(item.scenes || []);
+      document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedWlScenes.has(cb.value));
       document.getElementById("wl-address").value = item.address || "";
       const wlLinksBox = document.getElementById("wl-links");
       wlLinksBox.innerHTML = "";
@@ -1156,6 +1228,10 @@
       if(!name){ alert("お店の名前を入力してください"); return; }
       const editId = document.getElementById("wl-edit-id").value;
       const memo = document.getElementById("wl-memo").value.trim();
+      const genre = document.getElementById("wl-genre").value;
+      const prefecture = document.getElementById("wl-pref").value;
+      const area = document.getElementById("wl-area").value;
+      const scenes = [...document.querySelectorAll('#wl-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
       const address = document.getElementById("wl-address").value.trim();
       const links = collectLinks(document.getElementById("wl-links"));
       const anonymous = document.getElementById("wl-anonymous").checked;
@@ -1168,13 +1244,13 @@
         const geo = await geocodeAddress(address);
         if(editId){
           await updateDoc(doc(db,"wishlist",editId), {
-            name, memo, links, referenceUrl: links[0]?.url || "", address,
+            name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             anonymous, sharedWith, sharedWithEmails: shareEmailsArr,
           });
         }else{
           await addDoc(collection(db,"wishlist"), {
-            name, memo, links, referenceUrl: links[0]?.url || "", address,
+            name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             addedBy: currentUser.uid,
             addedByNickname: currentNickname,
@@ -1217,10 +1293,16 @@
     function applyWishlistFilter(){
       if(viewMode !== "wishlist") return;
       const myEmail = currentUser?.email?.toLowerCase();
+      const kw = wlFilter.keyword.trim().toLowerCase();
       const filtered = allWishItems.filter(item=>{
         if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
         if(wlFilter.mine === "shared" && !(myEmail && (item.sharedWithEmails||[]).includes(myEmail))) return false;
         if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
+        if(wlFilter.pref && item.prefecture !== wlFilter.pref) return false;
+        if(wlFilter.area && item.area !== wlFilter.area) return false;
+        if(wlFilter.genre && item.genre !== wlFilter.genre) return false;
+        if(wlFilter.scene && !(item.scenes||[]).includes(wlFilter.scene)) return false;
+        if(kw && !(`${item.name} ${item.memo||""}`).toLowerCase().includes(kw)) return false;
         return true;
       });
       document.getElementById("empty-state").textContent = "条件に合う登録がありません。";
@@ -1252,7 +1334,9 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}</h3>
+              ${(item.area || item.genre) ? `<p class="text-xs text-[var(--ink)]/60">${item.area || ""}${item.area && item.genre ? " ／ " : ""}${item.genre || ""}</p>` : ""}
               ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
+              ${(item.scenes||[]).length ? `<div class="flex flex-wrap gap-1 mt-1">${item.scenes.map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>` : ""}
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
               <div class="flex flex-wrap gap-3 mt-1">
                 ${item.lat && item.lng ? `<a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">Googleマップで見る</a>` : ""}
@@ -1315,7 +1399,10 @@
           card.querySelector('[data-role="promote"]')?.addEventListener("click", ()=>{
             const memo = [item.memo, visited ? `【${item.impressionByNickname || "名無しさん"}さんの感想】${item.impression}` : ""]
               .filter(Boolean).join("\n");
-            openStoreModal(null, { name: item.name, memo, links: normalizeLinks(item, "referenceUrl", "参考リンク"), address: item.address || "" });
+            openStoreModal(null, {
+              name: item.name, memo, links: normalizeLinks(item, "referenceUrl", "参考リンク"),
+              address: item.address || "", genre: item.genre || "", prefecture: item.prefecture || "", area: item.area || "",
+            });
           });
         }
         list.appendChild(card);
@@ -1394,6 +1481,7 @@
     }
 
     fillStaticFormOptions();
+    fillWishlistFormOptions();
     const mapScript = document.createElement("script");
     mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
     mapScript.async = true;
