@@ -118,7 +118,7 @@
     import {
       collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, addDoc, doc, query, where
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let currentUser = null, currentRole = "member", currentNickname = "", currentShareId = "";
     let myContacts = [], myGroups = [], myWishItems = [];
@@ -142,8 +142,7 @@
       return (await getDoc(ref)).data();
     }
 
-    document.getElementById("btn-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
-    getRedirectResult(auth).catch(e=> console.error("ログインに失敗しました", e));
+    document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
 
     onAuthStateChanged(auth, async (user)=>{
       currentUser = user;

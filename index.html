@@ -255,7 +255,7 @@
       collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc,
       query, where, orderBy, limit
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { GENRES, SCENES, AREA_TREE } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
@@ -336,21 +336,12 @@
         formSection.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
-        document.getElementById("btn-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
+        document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
         formSection.classList.add("hidden");
       }
       renderWishlistAuthState();
     }
 
-    // リダイレクト方式のログイン結果を確認（失敗時はエラー内容を表示）
-    getRedirectResult(auth).catch((err)=>{
-      console.error("ログインに失敗しました", err);
-      if(err.code === "auth/unauthorized-domain"){
-        alert("このサイトのドメインがFirebaseの許可リストに登録されていません。管理者に連絡してください。");
-      }else if(err.code !== "auth/no-current-user" && err.code){
-        alert(`ログインに失敗しました（${err.code}）。\nアプリ内ブラウザ（LINE・Instagram等）で開いている場合は、右上のメニューから「ブラウザで開く」を選んでもう一度お試しください。`);
-      }
-    });
 
     onAuthStateChanged(auth, async (user)=>{
       currentUser = user;
@@ -440,7 +431,7 @@
         document.getElementById("empty-state").classList.add("hidden");
       }
     }
-    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithRedirect(auth, googleProvider));
+    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
 
     // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・マイページからの遷移用）は自動でタブを切替
     // 「&edit=店舗ID」が付いていれば、データ読み込み後に自動でその項目の編集フォームを開く
