@@ -35,7 +35,7 @@
   <header class="bg-[var(--ink)] text-[var(--paper)]">
     <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-3">
-        <img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg">
+        <a href="index.html"><img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg"></a>
         <h1 class="text-base md:text-lg font-bold">使い方ガイド</h1>
       </div>
       <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">ホームに戻る</a>
@@ -53,10 +53,23 @@
         <b>本当に良いと思ったお店だけ</b>を載せる、という考え方で作っています。
         あわせて、まだ行ったことはないけれど気になっている「行ってみたい店」も管理できます。
       </p>
+      <nav class="mock p-4 mt-4">
+        <p class="text-xs font-bold mb-2">目次</p>
+        <ol class="text-xs text-[var(--shu)] space-y-1 list-decimal list-inside">
+          <li><a href="#lists" class="underline underline-offset-2">2つのリストを使い分けよう</a></li>
+          <li><a href="#official" class="underline underline-offset-2">「実際に行って良かった店」の探し方</a></li>
+          <li><a href="#wishlist" class="underline underline-offset-2">「行ってみたい店」の使い方</a></li>
+          <li><a href="#roles" class="underline underline-offset-2">権限について（4段階）</a></li>
+          <li><a href="#login" class="underline underline-offset-2">ログイン・表示名について</a></li>
+          <li><a href="#mypage" class="underline underline-offset-2">マイページについて</a></li>
+          <li><a href="#mobile" class="underline underline-offset-2">スマホでもっと使いやすくする</a></li>
+          <li><a href="#faq" class="underline underline-offset-2">よくある質問</a></li>
+        </ol>
+      </nav>
     </section>
 
     <!-- 2つのリスト -->
-    <section>
+    <section id="lists">
       <h2 class="section-title text-xl font-bold mb-3">2つのリストを使い分けよう</h2>
       <p class="text-sm mb-4">ホーム画面の上部にあるタブで、2種類のリストを切り替えられます。</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -72,7 +85,7 @@
     </section>
 
     <!-- 実際に行って良かった店の使い方 -->
-    <section>
+    <section id="official">
       <h2 class="section-title text-xl font-bold mb-3">「実際に行って良かった店」の探し方</h2>
 
       <p class="text-sm font-bold mb-2">① 絞り込みは上から順番に</p>
@@ -123,7 +136,7 @@
     </section>
 
     <!-- 行ってみたい店の使い方 -->
-    <section>
+    <section id="wishlist">
       <h2 class="section-title text-xl font-bold mb-3">「行ってみたい店」の使い方</h2>
 
       <div class="flex items-start gap-3 mb-3">
@@ -141,8 +154,9 @@
         <div>
           <p class="text-sm font-bold">気になる友達に共有する（任意）</p>
           <p class="text-xs text-[var(--ink)]/70 mt-1">
-            登録・編集フォームの「共有先」で、特定の友達だけを選んで知らせることができます。
-            名前とメールアドレスを入力すれば連絡先として保存され、次回はワンタップで選べます。
+            誰でもログインすると、自動で6桁の<b>「共有ID」</b>（例：AB12CD）が発行されます。
+            友達にこの番号を伝えてもらい、登録・編集フォームの「共有先」で<b>共有IDを入力</b>すると、
+            メールアドレスを教え合うことなく共有できます。追加した相手は連絡先として保存され、次回はワンタップで選べます。
             何人かまとめて選んで「グループ作成」しておけば、次からグループ単位で一括共有できます。
             共有された相手は、「自分に共有された店」ボタンで自分宛てのものだけをすぐ確認できます。
           </p>
@@ -170,13 +184,14 @@
       </div>
 
       <p class="text-xs text-[var(--ink)]/60 mt-4">
-        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。<br>
+        ※編集・削除ができるのは「登録した本人」と「オーナー」だけです。それ以外の人は閲覧・感想投稿のみです。
+        カードの<b>「編集」</b>ボタンから、店名・メモ・住所・参考リンク・共有先をいつでも書き直せます。<br>
         ※「すべて／自分が登録した店／自分に共有された店」「すべて／未訪問／訪問済み」のタブで、見たい範囲を絞り込めます。
       </p>
     </section>
 
     <!-- 権限について -->
-    <section>
+    <section id="roles">
       <h2 class="section-title text-xl font-bold mb-3">権限について（4段階）</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-xs border-collapse">
@@ -205,7 +220,7 @@
     </section>
 
     <!-- ログイン・表示名 -->
-    <section>
+    <section id="login">
       <h2 class="section-title text-xl font-bold mb-3">ログイン・表示名について</h2>
       <p class="text-sm leading-relaxed">
         画面右上の「Googleでログイン」から、お使いのGoogleアカウントでログインできます。パスワードを新しく覚える必要はありません。
@@ -213,8 +228,22 @@
       </p>
     </section>
 
+    <!-- マイページ -->
+    <section id="mypage">
+      <h2 class="section-title text-xl font-bold mb-3">マイページについて</h2>
+      <p class="text-sm leading-relaxed mb-3">
+        ログイン中は、画面右上に「マイページ」というリンクが表示されます。ここでは以下のことがまとめて確認・管理できます。
+      </p>
+      <ul class="text-xs text-[var(--ink)]/70 space-y-1.5 list-disc list-inside">
+        <li>表示名の変更、自分の<b>共有ID</b>の確認・コピー</li>
+        <li>連絡先（友達）・グループの一覧管理（共有IDでの追加・削除）</li>
+        <li>連絡先ごとの「呼び方」を自分用に変更（相手本人の表示名は変わりません）</li>
+        <li>自分が登録した「行ってみたい店」の一覧確認・編集・削除</li>
+      </ul>
+    </section>
+
     <!-- スマホで使いやすくする -->
-    <section>
+    <section id="mobile">
       <h2 class="section-title text-xl font-bold mb-2">スマホでもっと使いやすくする</h2>
       <p class="text-sm leading-relaxed mb-4">
         おかログはアプリではなく「Webサイト」なので、App StoreやGoogle Playからのインストールはできません。
@@ -268,7 +297,7 @@
     </section>
 
     <!-- よくある質問 -->
-    <section>
+    <section id="faq">
       <h2 class="section-title text-xl font-bold mb-3">よくある質問</h2>
       <div class="space-y-3 text-sm">
         <div>
@@ -289,6 +318,20 @@
             A. LINEやInstagramなどのアプリ内リンクから開いた場合に起きやすいエラーです。Googleのセキュリティ方針で、
             アプリ内の簡易ブラウザからのログインがブロックされています。画面右上のメニュー（⋮や共有アイコンなど）から
             「ブラウザで開く」「Safariで開く」を選んで、SafariやChromeなど通常のブラウザで開き直してから、もう一度お試しください。
+          </p>
+        </div>
+        <div>
+          <p class="font-bold">Q. 友達の共有IDを入力しても「見つかりませんでした」と出る</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            A. 共有IDは、友達がおかログに一度もログインしていないと発行されません。まず友達にログインしてもらい、
+            マイページに表示される共有IDを確認・共有してもらってください。番号の間違い（0とO、1とIなど）にもご注意ください。
+          </p>
+        </div>
+        <div>
+          <p class="font-bold">Q. 登録済みのお店の内容を書き直したい</p>
+          <p class="text-xs text-[var(--ink)]/70 mt-1">
+            A. 「実際に行って良かった店」は編集者・オーナーがカードの「編集」ボタンから、「行ってみたい店」は
+            登録した本人かオーナーがカードの「編集」ボタンから、いつでも内容を書き直せます。
           </p>
         </div>
       </div>
