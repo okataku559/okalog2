@@ -74,21 +74,6 @@
     </div>
   </nav>
 
-  <!-- 検索・絞り込みバー（「実際に行って良かった店」モード） -->
-  <section id="official-controls" class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
-    <div class="max-w-7xl mx-auto px-4 py-3">
-      <div class="flex flex-wrap gap-2 items-center">
-        <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
-               class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
-        <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
-      </div>
-    </div>
-  </section>
-
   <!-- お店の登録・編集（「実際に行って良かった店」モード・編集者以上のみ表示） -->
   <section id="official-form-section" class="hidden border-b border-[var(--line)] bg-[var(--paper)]">
     <div class="max-w-7xl mx-auto px-4 py-3">
@@ -131,6 +116,21 @@
           </div>
         </form>
       </details>
+    </div>
+  </section>
+
+  <!-- 検索・絞り込みバー（「実際に行って良かった店」モード） -->
+  <section id="official-controls" class="border-b border-[var(--line)] bg-[var(--paper)] sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex flex-wrap gap-2 items-center">
+        <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <select id="f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+        <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
+               class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
+        <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
+      </div>
     </div>
   </section>
 
