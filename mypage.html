@@ -96,6 +96,13 @@
         </div>
       </section>
 
+      <!-- 自分が「実際に行った」と記録したお店 -->
+      <section>
+        <h2 class="section-title text-xl font-bold mb-3">自分が「実際に行った」と記録したお店</h2>
+        <div id="my-visited" class="space-y-2"></div>
+        <p id="my-visited-empty" class="hidden text-xs text-[var(--ink)]/50 text-center py-6">まだ記録がありません。ホーム画面のお店カードにある「✓ 実際に行った」ボタンで記録できます。</p>
+      </section>
+
       <!-- 自分が登録した行ってみたい店 -->
       <section>
         <h2 class="section-title text-xl font-bold mb-3">自分が登録した「行ってみたい店」</h2>
@@ -149,7 +156,7 @@
         currentShareId = data.shareId || "";
         loginBox.classList.add("hidden"); content.classList.remove("hidden");
         renderProfile();
-        await loadContacts(); await loadGroups(); await loadMyWishlist();
+        await loadContacts(); await loadGroups(); await loadMyWishlist(); await loadMyVisited();
       }else{
         loginBox.classList.remove("hidden"); content.classList.add("hidden");
       }
@@ -330,6 +337,37 @@
           if(!confirm(`「${item.name}」を削除します。よろしいですか？`)) return;
           await deleteDoc(doc(db,"wishlist",item.id));
           await loadMyWishlist();
+        });
+        box.appendChild(row);
+      });
+    }
+
+    // ---------------- 実際に行ったお店 ----------------
+    let myVisited = [];
+    async function loadMyVisited(){
+      const snap = await getDocs(query(collection(db,"visited"), where("uid","==",currentUser.uid)));
+      myVisited = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderMyVisited();
+    }
+    function renderMyVisited(){
+      const box = document.getElementById("my-visited");
+      const empty = document.getElementById("my-visited-empty");
+      box.innerHTML = "";
+      empty.classList.toggle("hidden", myVisited.length>0);
+      myVisited.forEach(v=>{
+        const row = document.createElement("div");
+        row.className = "mock p-3 flex items-center justify-between gap-2";
+        row.innerHTML = `
+          <div class="min-w-0">
+            <p class="font-bold text-sm truncate">${v.storeName}</p>
+            <p class="text-xs text-[var(--ink)]/60">${v.area || ""}${v.area && v.genre ? "／" : ""}${v.genre || ""}</p>
+          </div>
+          <button class="text-xs underline underline-offset-2 text-[var(--shu)] shrink-0" data-role="unmark">記録を取り消す</button>
+        `;
+        row.querySelector('[data-role="unmark"]').addEventListener("click", async ()=>{
+          if(!confirm(`「${v.storeName}」の記録を取り消します。よろしいですか？`)) return;
+          await deleteDoc(doc(db,"visited",v.id));
+          await loadMyVisited();
         });
         box.appendChild(row);
       });

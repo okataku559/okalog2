@@ -34,6 +34,8 @@
   .mode-tab[data-mode="official"][data-active="true"]{ border-color:var(--shu); color:var(--shu); }
   .mode-tab[data-mode="wishlist"][data-active="true"]{ border-color:var(--wish); color:var(--wish); }
   .wl-tab[data-active="true"]{ background:var(--wish); color:#fff; border-color:var(--wish); }
+  #view-list-btn, #view-map-btn{ border-color:var(--line); color:var(--ink); background:#fff; }
+  #view-list-btn[data-active="true"], #view-map-btn[data-active="true"]{ background:var(--ink); color:#fff; border-color:var(--ink); }
   dialog::backdrop{ background:rgba(31,36,33,.5); }
   dialog{ border:none; border-radius:.75rem; padding:0; }
   ::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
@@ -163,13 +165,18 @@
 
   <!-- メイン -->
   <main class="flex-1 max-w-7xl w-full mx-auto md:flex md:gap-4 px-4 py-4">
-    <section class="md:w-[46%] md:overflow-y-auto md:max-h-[calc(100vh-140px)]">
+    <!-- スマホ用：リスト／地図の切り替え（PCでは常に両方表示するので非表示） -->
+    <div class="flex gap-2 mb-3 md:hidden">
+      <button id="view-list-btn" class="flex-1 text-sm rounded-full px-3 py-1.5 border" data-active="true">📋 リスト</button>
+      <button id="view-map-btn" class="flex-1 text-sm rounded-full px-3 py-1.5 border">🗺️ 地図</button>
+    </div>
+    <section id="list-pane" class="md:w-[46%] md:overflow-y-auto md:max-h-[calc(100vh-140px)]">
       <p id="result-count" class="text-xs text-[var(--ink)]/60 mb-2 px-1"></p>
       <div id="list" class="flex flex-col gap-3"></div>
       <div id="empty-state" class="hidden text-center py-16 text-sm text-[var(--ink)]/60"></div>
     </section>
-    <section id="map-pane" class="md:w-[54%] mt-4 md:mt-0">
-      <div id="map" class="w-full h-[320px] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
+    <section id="map-pane" class="hidden md:block md:w-[54%] mt-4 md:mt-0">
+      <div id="map" class="w-full h-[calc(100vh-260px)] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
     </section>
   </main>
 
@@ -342,8 +349,9 @@
         currentRole = data.role || "member";
         currentNickname = data.displayName || user.displayName || "名無しさん";
         currentShareId = data.shareId || "";
+        await loadMyVisited();
       }else{
-        currentRole = "anonymous"; currentNickname = ""; currentShareId = "";
+        currentRole = "anonymous"; currentNickname = ""; currentShareId = ""; myVisitedIds = new Set();
       }
       renderAuthArea();
       if(viewMode === "official") applyFilters();
@@ -368,6 +376,42 @@
     }
     document.getElementById("tab-official").addEventListener("click", ()=> switchMode("official"));
     document.getElementById("tab-wishlist").addEventListener("click", ()=> switchMode("wishlist"));
+
+    // ---------------------------------------------------------------
+    // スマホ用：リスト／地図の切り替え表示（PCでは常に両方表示）
+    // ---------------------------------------------------------------
+    let mobileSubView = "list"; // 'list' | 'map'
+    function setMobileSubView(v){
+      mobileSubView = v;
+      document.getElementById("view-list-btn").dataset.active = String(v === "list");
+      document.getElementById("view-map-btn").dataset.active = String(v === "map");
+      document.getElementById("list-pane").classList.toggle("hidden", v !== "list");
+      // map-paneは "hidden md:block" が基本形。地図モードのときだけ hidden を外す
+      const mapPane = document.getElementById("map-pane");
+      mapPane.classList.toggle("hidden", v !== "map");
+      mapPane.classList.add("md:block");
+      if(v === "map" && map){ setTimeout(()=> google.maps.event.trigger(map, "resize"), 50); }
+    }
+    document.getElementById("view-list-btn").addEventListener("click", ()=> setMobileSubView("list"));
+    document.getElementById("view-map-btn").addEventListener("click", ()=> setMobileSubView("map"));
+    window.addEventListener("resize", ()=>{
+      if(window.innerWidth >= 768){
+        document.getElementById("list-pane").classList.remove("hidden");
+        document.getElementById("map-pane").classList.remove("hidden");
+      }
+    });
+
+    // 地図のピン・InfoWindowから「詳しく見る」でリスト側の該当カードへジャンプ
+    window.__gotoListCard = function(id){
+      setMobileSubView("list");
+      requestAnimationFrame(()=>{
+        const card = document.querySelector(`.store-card[data-id="${id}"]`);
+        if(card){
+          card.scrollIntoView({behavior:"smooth", block:"center"});
+          card.dataset.selected = "true";
+        }
+      });
+    };
 
     function renderWishlistAuthState(){
       const loginBox = document.getElementById("wishlist-login-required");
@@ -401,6 +445,42 @@
     // ---------------------------------------------------------------
     const state = { pref:"", area:"", genre:"", scene:"", keyword:"" };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
+    let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
+
+    async function loadMyVisited(){
+      if(!currentUser){ myVisitedIds = new Set(); return; }
+      try{
+        const snap = await getDocs(query(collection(db,"visited"), where("uid","==",currentUser.uid)));
+        myVisitedIds = new Set(snap.docs.map(d=> d.data().restaurantId));
+      }catch(e){
+        console.error("行った記録の読み込みに失敗しました", e);
+      }
+    }
+    async function markVisited(s){
+      if(!currentUser) return;
+      try{
+        await setDoc(doc(db,"visited", `${currentUser.uid}_${s.id}`), {
+          uid: currentUser.uid, restaurantId: s.id, storeName: s.name, area: s.area, genre: s.genre,
+          markedAt: new Date().toISOString(),
+        });
+        myVisitedIds.add(s.id);
+        applyFilters();
+      }catch(e){
+        console.error(e);
+        alert(`記録に失敗しました（${e.code || e.message}）`);
+      }
+    }
+    async function unmarkVisited(s){
+      if(!currentUser) return;
+      try{
+        await deleteDoc(doc(db,"visited", `${currentUser.uid}_${s.id}`));
+        myVisitedIds.delete(s.id);
+        applyFilters();
+      }catch(e){
+        console.error(e);
+        alert(`取り消しに失敗しました（${e.code || e.message}）`);
+      }
+    }
 
     const STORAGE_KEY = "okalog_search_state_v2";
     function saveState(){
@@ -517,8 +597,11 @@
             <a href="${mapUrl}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">Googleマップで見る</a>
           </div>
           ${renderLinkPills(normalizeLinks(s, "url", "外部リンク"), "--shu")}
-          <div class="flex flex-wrap gap-2 mt-2 text-xs">
+          <div class="flex flex-wrap gap-2 mt-2 text-xs items-center">
             <button data-role="toggle-review" class="underline underline-offset-2 text-[var(--ink)]/70">口コミを見る・書く</button>
+            ${currentUser ? (myVisitedIds.has(s.id)
+              ? `<span class="text-[10px] bg-[var(--kin)] text-white rounded-full px-2 py-0.5">✓ 行った店として記録済み</span><button data-role="unmark-visited" class="underline underline-offset-2 text-[var(--ink)]/50">取り消す</button>`
+              : `<button data-role="mark-visited" class="underline underline-offset-2 text-[var(--kin)]">✓ 実際に行った</button>`) : ""}
             ${canEdit ? `<button data-role="edit" class="underline underline-offset-2 text-[var(--ink)]/70">編集</button>` : ""}
             ${canEdit && !isOwner && !s.deleteRequested ? `<button data-role="request-delete" class="underline underline-offset-2 text-[var(--shu)]">削除依頼</button>` : ""}
             ${isOwner ? `<button data-role="delete" class="underline underline-offset-2 text-[var(--shu)]">削除</button>` : ""}
@@ -528,6 +611,8 @@
         `;
         card.querySelector('[data-role="focus"]').addEventListener("click", ()=> focusStore(s));
         card.querySelector('[data-role="toggle-review"]').addEventListener("click", ()=> toggleReviewBox(card, s));
+        card.querySelector('[data-role="mark-visited"]')?.addEventListener("click", (e)=>{ e.stopPropagation(); markVisited(s); });
+        card.querySelector('[data-role="unmark-visited"]')?.addEventListener("click", (e)=>{ e.stopPropagation(); unmarkVisited(s); });
         if(canEdit) card.querySelector('[data-role="edit"]').addEventListener("click", ()=> openStoreModal(s));
         if(canEdit && !isOwner) card.querySelector('[data-role="request-delete"]')?.addEventListener("click", ()=> requestDelete(s));
         if(isOwner) card.querySelector('[data-role="delete"]')?.addEventListener("click", ()=> deleteStore(s));
@@ -1152,6 +1237,7 @@
 
         const card = document.createElement("article");
         card.className = "store-card wish-card bg-white border border-[var(--line)] rounded-xl p-3";
+        card.dataset.id = item.id;
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
@@ -1246,9 +1332,12 @@
       if(item.lat && item.lng && map){
         map.panTo({lat:item.lat, lng:item.lng}); map.setZoom(16);
         const marker = markers[item.id];
-        if(marker){ infoWindow.setContent(`<strong>${item.name}</strong>（行ってみたい店）`); infoWindow.open(map, marker); }
+        if(marker){
+          infoWindow.setContent(`<strong>${item.name}</strong>（行ってみたい店）<br><a href="#" onclick="window.__gotoListCard('${item.id}');return false;" style="color:#2B5DA6;">詳しく見る</a>`);
+          infoWindow.open(map, marker);
+        }
       }
-      if(window.innerWidth < 768) document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
+      if(window.innerWidth < 768) setMobileSubView("map");
     }
 
     // ---------------------------------------------------------------
@@ -1259,9 +1348,12 @@
       if(s.lat && s.lng && map){
         map.panTo({lat:s.lat, lng:s.lng}); map.setZoom(16);
         const marker = markers[s.id];
-        if(marker){ infoWindow.setContent(`<strong>${s.name}</strong><br>${s.area}／${s.genre}`); infoWindow.open(map, marker); }
+        if(marker){
+          infoWindow.setContent(`<strong>${s.name}</strong><br>${s.area}／${s.genre}<br><a href="#" onclick="window.__gotoListCard('${s.id}');return false;" style="color:#B23A22;">詳しく見る</a>`);
+          infoWindow.open(map, marker);
+        }
       }
-      if(window.innerWidth < 768) document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
+      if(window.innerWidth < 768) setMobileSubView("map");
       saveState();
     }
     window.initMap = function(){
