@@ -113,7 +113,7 @@
             <button type="button" id="wl-links-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ リンクを追加</button>
           </div>
           <div class="border border-[var(--line)] rounded-lg p-2 space-y-2">
-            <p class="text-xs font-bold">共有先（任意・選んだ人と共有できます）</p>
+            <p class="text-xs font-bold">共有先（任意・共有IDを知っている人だけと共有できます）</p>
             <p class="text-[10px] text-[var(--ink)]/50">
               あなたの共有ID：<b id="wl-my-share-id">-</b>
               <button type="button" id="wl-copy-share-id" class="underline underline-offset-2 text-[var(--wish)] ml-1">コピー</button>
@@ -122,21 +122,13 @@
             <div id="wl-share-chips" class="flex flex-wrap gap-1"></div>
             <div id="wl-contacts-list" class="flex flex-wrap gap-1"></div>
 
-            <p class="text-[10px] font-bold text-[var(--ink)]/60 pt-1 border-t border-[var(--line)]">友達の共有IDで追加（メールアドレス不要）</p>
+            <p class="text-[10px] font-bold text-[var(--ink)]/60 pt-1 border-t border-[var(--line)]">友達の共有IDで追加</p>
             <div class="flex flex-wrap gap-1">
               <input type="text" id="wl-share-id-input" placeholder="例：AB12CD"
                      class="w-28 border border-[var(--line)] rounded px-2 py-1 text-xs uppercase">
               <button type="button" id="wl-add-by-share-id-btn" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">IDで追加</button>
             </div>
 
-            <p class="text-[10px] font-bold text-[var(--ink)]/60 pt-1 border-t border-[var(--line)]">名前とメールアドレスで追加</p>
-            <div class="flex flex-wrap gap-1">
-              <input type="text" id="wl-new-contact-nickname" placeholder="名前"
-                     class="w-20 border border-[var(--line)] rounded px-2 py-1 text-xs">
-              <input type="email" id="wl-new-contact-email" placeholder="メールアドレス"
-                     class="flex-1 min-w-[140px] border border-[var(--line)] rounded px-2 py-1 text-xs">
-              <button type="button" id="wl-add-contact-btn" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">連絡先に追加して共有</button>
-            </div>
             <div class="flex flex-wrap gap-1 items-center pt-1 border-t border-[var(--line)]">
               <select id="wl-group-select" class="border border-[var(--line)] rounded px-2 py-1 text-xs"></select>
               <button type="button" id="wl-use-group-btn" class="text-xs underline underline-offset-2 text-[var(--wish)]">グループを共有先に追加</button>
@@ -955,21 +947,6 @@
       }
     });
 
-    document.getElementById("wl-add-contact-btn").addEventListener("click", async ()=>{
-      const nickname = document.getElementById("wl-new-contact-nickname").value.trim();
-      const email = document.getElementById("wl-new-contact-email").value.trim().toLowerCase();
-      if(!nickname || !email){ alert("名前とメールアドレスの両方を入力してください"); return; }
-      try{
-        await addDoc(collection(db,"contacts"), { ownerUid: currentUser.uid, nickname, email, createdAt: new Date().toISOString() });
-        document.getElementById("wl-new-contact-nickname").value = "";
-        document.getElementById("wl-new-contact-email").value = "";
-        wlShareEmails.add(email);
-        await loadContactsAndGroups();
-      }catch(err){
-        console.error(err);
-        alert(`連絡先の追加に失敗しました（${err.code || err.message}）`);
-      }
-    });
     document.getElementById("wl-use-group-btn").addEventListener("click", ()=>{
       const groupId = document.getElementById("wl-group-select").value;
       const group = myGroups.find(g=> g.id === groupId);

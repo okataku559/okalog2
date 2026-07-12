@@ -75,14 +75,7 @@
           <p id="contacts-empty" class="hidden text-xs text-[var(--ink)]/50">まだ連絡先がありません。</p>
 
           <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--line)]">
-            <input type="text" id="new-contact-nickname" placeholder="名前"
-                   class="w-24 border border-[var(--line)] rounded px-2 py-1 text-sm">
-            <input type="email" id="new-contact-email" placeholder="メールアドレス"
-                   class="flex-1 min-w-[160px] border border-[var(--line)] rounded px-2 py-1 text-sm">
-            <button id="add-contact-btn" class="btn-wish rounded-full px-3 py-1 text-sm">追加</button>
-          </div>
-          <div class="flex flex-wrap gap-2 mt-2">
-            <input type="text" id="new-contact-shareid" placeholder="または友達の共有ID（例：AB12CD）"
+            <input type="text" id="new-contact-shareid" placeholder="友達の共有ID（例：AB12CD）"
                    class="flex-1 min-w-[160px] border border-[var(--line)] rounded px-2 py-1 text-sm uppercase">
             <button id="add-contact-by-id-btn" class="btn-wish rounded-full px-3 py-1 text-sm">IDで追加</button>
           </div>
@@ -193,8 +186,17 @@
         const row = document.createElement("div");
         row.className = "flex items-center justify-between bg-[var(--paper-dim)] rounded px-3 py-1.5";
         row.innerHTML = `<span>${c.nickname}<span class="text-xs text-[var(--ink)]/50 ml-2">${c.email}</span></span>
-          <button class="text-xs text-[var(--shu)] underline underline-offset-2">削除</button>`;
-        row.querySelector("button").addEventListener("click", async ()=>{
+          <span class="shrink-0 flex gap-2">
+            <button class="text-xs text-[var(--wish)] underline underline-offset-2" data-role="rename">呼び方を変更</button>
+            <button class="text-xs text-[var(--shu)] underline underline-offset-2" data-role="delete">削除</button>
+          </span>`;
+        row.querySelector('[data-role="rename"]').addEventListener("click", async ()=>{
+          const next = prompt(`「${c.nickname}」の呼び方を入力してください（自分にだけ表示されます）`, c.nickname);
+          if(!next || !next.trim()) return;
+          await updateDoc(doc(db,"contacts",c.id), { nickname: next.trim() });
+          await loadContacts();
+        });
+        row.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
           if(!confirm(`「${c.nickname}」を連絡先から削除します。よろしいですか？`)) return;
           await deleteDoc(doc(db,"contacts",c.id));
           await loadContacts();
@@ -202,15 +204,6 @@
         box.appendChild(row);
       });
     }
-    document.getElementById("add-contact-btn").addEventListener("click", async ()=>{
-      const nickname = document.getElementById("new-contact-nickname").value.trim();
-      const email = document.getElementById("new-contact-email").value.trim().toLowerCase();
-      if(!nickname || !email){ alert("名前とメールアドレスの両方を入力してください"); return; }
-      await addDoc(collection(db,"contacts"), { ownerUid: currentUser.uid, nickname, email, createdAt: new Date().toISOString() });
-      document.getElementById("new-contact-nickname").value = "";
-      document.getElementById("new-contact-email").value = "";
-      await loadContacts();
-    });
     document.getElementById("add-contact-by-id-btn").addEventListener("click", async ()=>{
       const input = document.getElementById("new-contact-shareid");
       const shareId = input.value.trim().toUpperCase();
