@@ -98,8 +98,12 @@
         <button id="btn-wishlist-login" class="btn-wish rounded-full px-4 py-1.5 text-sm ml-2">Googleでログイン</button>
       </div>
       <div id="wishlist-form-area" class="space-y-3">
-        <div class="bg-white border border-[var(--line)] rounded-xl p-3 space-y-2">
-          <p id="wl-form-title" class="font-bold text-xs">＋ 行ってみたいお店を登録する</p>
+        <details id="wl-form-details" class="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+          <summary class="cursor-pointer select-none px-3 py-2.5 flex items-center justify-between gap-2">
+            <span id="wl-form-title" class="font-bold text-xs">＋ 行ってみたいお店を登録する</span>
+            <span class="text-[var(--ink)]/40 text-xs">タップで開閉 ▾</span>
+          </summary>
+          <div class="px-3 pb-3 space-y-2 border-t border-[var(--line)] pt-2">
           <input type="hidden" id="wl-edit-id">
           <input id="wl-name" type="text" placeholder="お店の名前"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
@@ -146,7 +150,8 @@
             <button id="btn-add-wish" class="btn-wish rounded-full px-4 py-1.5 text-sm">登録する</button>
             <button id="btn-wl-cancel-edit" class="hidden text-xs px-3 py-1.5 rounded-full border border-[var(--line)]">編集をキャンセル</button>
           </div>
-        </div>
+          </div>
+        </details>
         <div class="flex flex-wrap gap-2">
           <div class="flex gap-1.5" id="filter-mine">
             <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
@@ -1123,10 +1128,14 @@
       previousShareEmails = [...wlShareEmails];
       renderShareChips(); renderContactsList();
       showNameWarning("wl-name-warning", item.name, { excludeWishId: item.id });
+      document.getElementById("wl-form-details").open = true;
       document.getElementById("wishlist-form-area").scrollIntoView({behavior:"smooth", block:"start"});
       document.getElementById("wl-name").focus();
     }
-    document.getElementById("btn-wl-cancel-edit").addEventListener("click", resetWishlistForm);
+    document.getElementById("btn-wl-cancel-edit").addEventListener("click", ()=>{
+      resetWishlistForm();
+      document.getElementById("wl-form-details").open = false;
+    });
 
     async function notifySharedRecipients(storeName, newEmails){
       // EmailJSの共有用テンプレートが未設定（プレースホルダーのまま）の場合は何もしない
@@ -1178,6 +1187,7 @@
         }
         if(newlyShared.length) notifySharedRecipients(name, newlyShared);
         resetWishlistForm();
+        document.getElementById("wl-form-details").open = false;
         loadWishlist();
       }catch(err){
         console.error(err);
