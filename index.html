@@ -61,10 +61,40 @@
         <a href="guide.html" class="flex items-center gap-1 bg-[var(--kin)]/20 border border-[var(--kin)] text-[var(--paper)] rounded-full px-3 py-1 hover:bg-[var(--kin)]/30 transition-colors">
           <span aria-hidden="true">📖</span> 使い方ガイド
         </a>
+        <div class="relative">
+          <button id="btn-notifications" class="hidden relative text-lg" aria-label="通知">
+            🔔<span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-[var(--shu)] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">0</span>
+          </button>
+          <div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 max-w-[90vw] bg-white text-[var(--ink)] border border-[var(--line)] rounded-xl shadow-lg z-30 max-h-96 overflow-y-auto">
+            <div class="p-2 border-b border-[var(--line)] flex items-center justify-between">
+              <p class="text-xs font-bold px-1">通知</p>
+              <button id="notif-mark-all" class="text-[10px] underline text-[var(--wish)]">すべて既読にする</button>
+            </div>
+            <div id="notif-list" class="divide-y divide-[var(--line)]"></div>
+          </div>
+        </div>
         <div id="auth-area" class="flex items-center gap-2"></div>
       </div>
     </div>
   </header>
+
+  <!-- 編集権限の申請ダイアログ -->
+  <dialog id="editor-request-dialog" class="w-[92vw] max-w-md">
+    <div class="p-4 space-y-3">
+      <h2 class="font-bold text-base">編集権限を申請する</h2>
+      <p class="text-xs text-[var(--ink)]/60">
+        おすすめのお店やアピールポイントを添えてオーナーに送ると、通知が届きます。
+        承認されると、お店の登録・編集ができるようになります。
+      </p>
+      <textarea id="editor-request-message" rows="4" placeholder="例：〇〇エリアに詳しいので、お店を追加していきたいです。おすすめは△△です。"
+                class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></textarea>
+      <p id="editor-request-status" class="text-xs text-[var(--shu)]"></p>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="editor-request-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)]">閉じる</button>
+        <button type="button" id="editor-request-submit" class="text-sm px-4 py-1.5 rounded-full btn-primary">申請する</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- モード切り替えタブ -->
   <nav class="bg-white border-b border-[var(--line)]">
@@ -84,28 +114,29 @@
         </summary>
         <form id="store-form" class="px-3 pb-3 space-y-2 border-t border-[var(--line)] pt-2">
           <input type="hidden" id="sf-id">
-          <label class="block text-xs font-bold">店名<input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <label class="block text-xs font-bold">店名 <span class="text-[var(--shu)] font-normal">必須</span><input required id="sf-name" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
           <p id="sf-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
-          <label class="block text-xs font-bold">ジャンル
+          <label class="block text-xs font-bold">住所 <span class="text-[var(--shu)] font-normal">必須</span>（地図ピンに使われ、下の都道府県・市区町村・エリアが自動入力されます）<input required id="sf-address" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <p id="sf-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
+          <p id="sf-autofill-status" class="hidden text-xs text-[var(--kin)] bg-[var(--paper-dim)] rounded p-2"></p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-xs font-bold">都道府県 <span class="text-[var(--ink)]/40 font-normal">必須・自動入力</span><input required id="sf-pref" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+            <label class="block text-xs font-bold">市区町村 <span class="text-[var(--ink)]/40 font-normal">必須・自動入力</span><input required id="sf-city" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          </div>
+          <label class="block text-xs font-bold">エリア <span class="text-[var(--ink)]/40 font-normal">必須・自動入力（例：梅田・北新地・中之島）</span><input required id="sf-area" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
+          <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
             <select id="sf-genre" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></select>
           </label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block text-xs font-bold">都道府県<input required id="sf-pref" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-            <label class="block text-xs font-bold">市区町村<input required id="sf-city" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-          </div>
-          <label class="block text-xs font-bold">エリア（例：梅田・北新地・中之島）<input required id="sf-area" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-          <label class="block text-xs font-bold">住所（地図ピンに使われます）<input required id="sf-address" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"></label>
-          <p id="sf-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
-          <label class="block text-xs font-bold">満足度（1〜5）
+          <label class="block text-xs font-bold">満足度（1〜5） <span class="text-[var(--ink)]/40 font-normal">任意</span>
             <select id="sf-taste" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
               <option value="0">未評価</option><option value="1">1</option><option value="2">2</option>
               <option value="3">3</option><option value="4">4</option><option value="5">5</option>
             </select>
           </label>
           <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
-          <label class="block text-xs font-bold">おすすめポイント（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
+          <label class="block text-xs font-bold">おすすめポイント <span class="text-[var(--ink)]/40 font-normal">任意</span>（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
           <div>
-            <p class="text-xs font-bold mb-1">参考リンク（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
+            <p class="text-xs font-bold mb-1">参考リンク <span class="text-[var(--ink)]/40 font-normal">任意</span>（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
             <div id="sf-links" class="space-y-1"></div>
             <button type="button" id="sf-links-add" class="text-xs underline underline-offset-2 text-[var(--shu)] mt-1">＋ リンクを追加</button>
           </div>
@@ -150,25 +181,28 @@
           </summary>
           <div class="px-3 pb-3 space-y-2 border-t border-[var(--line)] pt-2">
           <input type="hidden" id="wl-edit-id">
+          <label class="block text-xs font-bold">お店の名前 <span class="text-[var(--shu)] font-normal">必須</span></label>
           <input id="wl-name" type="text" placeholder="お店の名前"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
           <p id="wl-name-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
-          <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
-                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
-          <label class="block text-xs font-bold">ジャンル（任意）
-            <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
-          </label>
+          <label class="block text-xs font-bold">住所 <span class="text-[var(--ink)]/40 font-normal">任意・分かる範囲でOK。入れると地図表示＋下のジャンル欄以外が自動入力されます</span></label>
+          <input id="wl-address" type="text" placeholder="住所（任意）"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
+          <p id="wl-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
+          <p id="wl-autofill-status" class="hidden text-xs text-[var(--kin)] bg-[var(--paper-dim)] rounded p-2"></p>
           <div class="grid grid-cols-2 gap-2">
             <select id="wl-pref" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
             <select id="wl-area" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
           </div>
+          <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
+            <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          </label>
+          <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
+                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
           <div>
-            <p class="text-xs font-bold mb-1">利用シーン（任意）</p>
+            <p class="text-xs font-bold mb-1">利用シーン <span class="text-[var(--ink)]/40 font-normal">任意</span></p>
             <div id="wl-scenes" class="flex flex-wrap gap-1.5"></div>
           </div>
-          <input id="wl-address" type="text" placeholder="住所（任意・分かる範囲でOK。地図に表示されます）"
-                 class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm">
-          <p id="wl-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
           <div>
             <p class="text-xs font-bold mb-1">参考リンク（食べログ・Instagramなど、複数登録できます）</p>
             <div id="wl-links" class="space-y-1"></div>
@@ -258,7 +292,7 @@
     import { db, auth, googleProvider } from "./firebase-init.js";
     import {
       collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc,
-      query, where, orderBy, limit
+      query, where, orderBy, limit, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { GENRES, SCENES, AREA_TREE } from "./constants.js";
@@ -323,6 +357,33 @@
       renderAuthArea();
     }
 
+    function openEditorRequestDialog(){
+      document.getElementById("editor-request-message").value = "";
+      document.getElementById("editor-request-status").textContent = "";
+      document.getElementById("editor-request-dialog").showModal();
+    }
+    document.getElementById("editor-request-cancel").addEventListener("click", ()=>{
+      document.getElementById("editor-request-dialog").close();
+    });
+    document.getElementById("editor-request-submit").addEventListener("click", async ()=>{
+      const message = document.getElementById("editor-request-message").value.trim();
+      const statusEl = document.getElementById("editor-request-status");
+      if(!message){ statusEl.textContent = "おすすめのお店やアピールポイントを入力してください。"; return; }
+      try{
+        await addDoc(collection(db,"roleRequests"), {
+          uid: currentUser.uid, email: currentUser.email, nickname: currentNickname,
+          message, status: "pending", createdAt: new Date().toISOString(),
+        });
+        await notifyOwners("editor_request", `編集権限の申請：${currentNickname}さん`, message);
+        statusEl.classList.remove("text-[var(--shu)]"); statusEl.classList.add("text-[var(--kin)]");
+        statusEl.textContent = "申請しました。オーナーの承認をお待ちください。";
+        setTimeout(()=> document.getElementById("editor-request-dialog").close(), 1200);
+      }catch(e){
+        console.error(e);
+        statusEl.textContent = `申請に失敗しました（${e.code || e.message}）`;
+      }
+    });
+
     function roleLabel(role){
       return { owner:"オーナー", editor:"編集者", member:"ログイン中" }[role] || "";
     }
@@ -334,10 +395,12 @@
         box.innerHTML = `
           <a href="mypage.html" class="underline underline-offset-2">マイページ</a>
           <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
+          ${currentRole === "member" ? `<button id="btn-request-editor" class="underline underline-offset-2">編集権限を申請</button>` : ""}
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
         document.getElementById("btn-nickname").addEventListener("click", changeNickname);
         document.getElementById("btn-logout").addEventListener("click", ()=> signOut(auth));
+        document.getElementById("btn-request-editor")?.addEventListener("click", openEditorRequestDialog);
         formSection.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
@@ -356,12 +419,16 @@
         currentNickname = data.displayName || user.displayName || "名無しさん";
         currentShareId = data.shareId || "";
         await loadMyVisited();
+        await loadContactsAndGroups(); // 口コミ等の表示名解決にも使うため、タブに関わらず読み込む
+        setupNotifications(user.uid);
       }else{
         currentRole = "anonymous"; currentNickname = ""; currentShareId = ""; myVisitedIds = new Set();
+        myContacts = []; myGroups = [];
+        teardownNotifications();
       }
       renderAuthArea();
       if(viewMode === "official") applyFilters();
-      else if(currentUser){ loadWishlist(); loadContactsAndGroups(); }
+      else if(currentUser){ loadWishlist(); }
     });
 
     // ---------------------------------------------------------------
@@ -379,7 +446,7 @@
         applyFilters();
       }else{
         renderWishlistAuthState();
-        if(currentUser){ loadWishlist(); loadContactsAndGroups(); }
+        if(currentUser) loadWishlist();
       }
     }
     document.getElementById("tab-official").addEventListener("click", ()=> switchMode("official"));
@@ -638,14 +705,19 @@
         box.innerHTML = `<p class="text-xs text-[var(--ink)]/50">読み込み中…</p>`;
         const snap = await getDocs(query(collection(db,"reviews"), where("restaurantId","==",store.id)));
         const reviews = snap.docs.map(d=>d.data()).sort((a,b)=> (b.createdAt||"").localeCompare(a.createdAt||""));
+        const reviewUids = [...new Set(reviews.filter(r=>r.authorUid).map(r=>r.authorUid))];
+        await Promise.all(reviewUids.map(uid=> getEmailForUid(uid)));
         box.innerHTML = "";
         if(reviews.length === 0){
           box.innerHTML = `<p class="text-xs text-[var(--ink)]/50">まだ口コミがありません。</p>`;
         }else{
           reviews.forEach(r=>{
+            const email = r.authorUid ? uidEmailCache[r.authorUid] : null;
+            const contact = email ? myContacts.find(c=> c.email.toLowerCase() === email) : null;
+            const displayName = contact ? contact.nickname : (r.nickname || "名無しさん");
             const p = document.createElement("p");
             p.className = "text-xs";
-            p.innerHTML = `<span class="font-bold">${r.nickname||"名無しさん"}</span>：${r.text}`;
+            p.innerHTML = `<span class="font-bold">${displayName}</span>：${r.text}`;
             box.appendChild(p);
           });
         }
@@ -681,6 +753,7 @@
         deleteRequestedBy: currentUser.uid,
         deleteRequestedAt: new Date().toISOString(),
       });
+      await notifyOwners("delete_request", `削除依頼：${store.name}`, `${currentNickname}さんが削除を依頼しました。`);
       try{
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
           store_name: store.name,
@@ -849,6 +922,7 @@
       document.getElementById("sf-cancel").classList.toggle("hidden", !store);
       document.getElementById("sf-name-warning").classList.add("hidden");
       document.getElementById("sf-address-warning").classList.add("hidden");
+      document.getElementById("sf-autofill-status").classList.add("hidden");
       document.getElementById("sf-id").value = store?.id || "";
       document.getElementById("sf-name").value = store?.name || prefill?.name || "";
       document.getElementById("sf-genre").value = store?.genre || prefill?.genre || GENRES[0];
@@ -889,7 +963,9 @@
       showNameWarning("sf-name-warning", e.target.value, { excludeStoreId: document.getElementById("sf-id").value });
     });
     document.getElementById("sf-address").addEventListener("blur", (e)=>{
-      checkAddressDuplicate("sf-address-warning", e.target.value.trim(), { excludeStoreId: document.getElementById("sf-id").value });
+      const address = e.target.value.trim();
+      checkAddressDuplicate("sf-address-warning", address, { excludeStoreId: document.getElementById("sf-id").value });
+      autofillOfficialAddressFields(address);
     });
     document.getElementById("sf-cancel").addEventListener("click", resetStoreForm);
 
@@ -903,10 +979,77 @@
       return new Promise(resolve=>{
         if(!geocoder || !address){ resolve(null); return; }
         geocoder.geocode({address}, (results,status)=>{
-          if(status==="OK" && results[0]){ const l=results[0].geometry.location; resolve({lat:l.lat(), lng:l.lng()}); }
-          else resolve(null);
+          if(status==="OK" && results[0]){
+            const l = results[0].geometry.location;
+            const comp = results[0].address_components || [];
+            const find = (type) => comp.find(c=> c.types.includes(type))?.long_name || "";
+            resolve({
+              lat:l.lat(), lng:l.lng(),
+              prefecture: find("administrative_area_level_1"),
+              city: find("locality"),
+              ward: find("sublocality_level_1"),
+            });
+          }else resolve(null);
         });
       });
+    }
+
+    // 大阪市の区 → おかログの通称エリアへの変換（実データ取込時と同じ対応表）
+    const OSAKA_WARD_AREA = {
+      "北区":"梅田・北新地・中之島", "福島区":"梅田・北新地・中之島",
+      "中央区":"心斎橋・難波・道頓堀", "浪速区":"心斎橋・難波・道頓堀",
+      "西区":"堀江・南船場",
+      "天王寺区":"天王寺・阿倍野", "阿倍野区":"天王寺・阿倍野",
+      "西成区":"新世界・西成",
+      "城東区":"京橋・鶴橋", "東成区":"京橋・鶴橋", "生野区":"京橋・鶴橋", "都島区":"京橋・鶴橋",
+      "淀川区":"新大阪・十三", "東淀川区":"新大阪・十三",
+      "此花区":"ベイエリア", "港区":"ベイエリア", "大正区":"ベイエリア", "西淀川区":"ベイエリア",
+      "住之江区":"大阪市南部", "住吉区":"大阪市南部", "東住吉区":"大阪市南部", "平野区":"大阪市南部",
+      "旭区":"大阪市東部", "鶴見区":"大阪市東部",
+    };
+    // ジオコーディング結果から「エリア」を推測する（大阪市は区から変換、それ以外は市区町村名をそのまま採用）
+    function guessArea(geo){
+      if(!geo) return "";
+      if(geo.city === "大阪市" && geo.ward && OSAKA_WARD_AREA[geo.ward]) return OSAKA_WARD_AREA[geo.ward];
+      if(geo.ward) return geo.ward; // 堺市・京都市・神戸市など区がある政令指定都市はその区名
+      return geo.city || "";
+    }
+    // 住所欄からフォーカスが外れたら、都道府県・市区町村・エリアを自動入力する
+    // 「実際に行って良かった店」用：都道府県・市区町村・エリアはすべて自由入力欄
+    async function autofillOfficialAddressFields(address){
+      const statusEl = document.getElementById("sf-autofill-status");
+      if(!address){ statusEl.classList.add("hidden"); return; }
+      statusEl.textContent = "住所から地域情報を確認しています…"; statusEl.classList.remove("hidden");
+      const geo = await geocodeAddress(address);
+      if(!geo || !geo.prefecture){
+        statusEl.textContent = "⚠ 住所から地域情報を自動入力できませんでした。お手数ですが手動で入力してください。";
+        return;
+      }
+      const area = guessArea(geo);
+      document.getElementById("sf-pref").value = geo.prefecture;
+      document.getElementById("sf-city").value = geo.city;
+      document.getElementById("sf-area").value = area;
+      statusEl.textContent = `✓ 自動入力しました：${geo.prefecture} ／ ${geo.city || "－"} ／ ${area || "（エリア不明・確認してください）"}`;
+    }
+    // 「行ってみたい店」用：エリアはプルダウン（都道府県に連動）なので、選択肢を作り直してから値を設定
+    async function autofillWishlistAddressFields(address){
+      const statusEl = document.getElementById("wl-autofill-status");
+      if(!address){ statusEl.classList.add("hidden"); return; }
+      statusEl.textContent = "住所から地域情報を確認しています…"; statusEl.classList.remove("hidden");
+      const geo = await geocodeAddress(address);
+      if(!geo || !geo.prefecture || !AREA_TREE[geo.prefecture]){
+        statusEl.textContent = "⚠ 住所から地域情報を自動入力できませんでした。お手数ですが手動で選択してください。";
+        return;
+      }
+      const area = guessArea(geo);
+      document.getElementById("wl-pref").value = geo.prefecture;
+      fillWishlistFormAreaSelect();
+      const areaSel = document.getElementById("wl-area");
+      const hasOption = [...areaSel.options].some(o=> o.value === area);
+      if(hasOption) areaSel.value = area;
+      statusEl.textContent = hasOption
+        ? `✓ 自動入力しました：${geo.prefecture} ／ ${area}`
+        : `✓ 都道府県は自動入力しました：${geo.prefecture}（エリアは一覧になかったため手動で選択してください）`;
     }
 
     document.getElementById("store-form").addEventListener("submit", async (e)=>{
@@ -1007,6 +1150,96 @@
       const c = myContacts.find(c=> c.email.toLowerCase() === email.toLowerCase());
       return c ? c.nickname : email;
     }
+    // uid→メールアドレスの解決キャッシュ（相手が自分の連絡先に登録されているか調べるために使用）
+    let uidEmailCache = {};
+    async function getEmailForUid(uid){
+      if(uid in uidEmailCache) return uidEmailCache[uid];
+      try{
+        const snap = await getDoc(doc(db,"users",uid));
+        uidEmailCache[uid] = snap.exists() ? (snap.data().email||"").toLowerCase() : null;
+      }catch(e){ uidEmailCache[uid] = null; }
+      return uidEmailCache[uid];
+    }
+
+    // ---------------------------------------------------------------
+    // アプリ内通知（削除依頼・編集権限申請・共有・感想投稿のお知らせ）
+    // メールの代わりにページ上のベルアイコンで確認できるようにする
+    // ---------------------------------------------------------------
+    let notifUnsub = null;
+    let ownerUidsCache = null;
+    async function getOwnerUids(){
+      if(ownerUidsCache) return ownerUidsCache;
+      const snap = await getDocs(query(collection(db,"users"), where("role","==","owner")));
+      ownerUidsCache = snap.docs.map(d=> d.id);
+      return ownerUidsCache;
+    }
+    async function createNotification(recipientUid, type, title, body){
+      if(!recipientUid) return;
+      try{
+        await addDoc(collection(db,"notifications"), {
+          recipientUid, type, title, body: body || "", read: false, createdAt: new Date().toISOString(),
+        });
+      }catch(e){ console.error("通知の作成に失敗しました", e); }
+    }
+    async function notifyOwners(type, title, body){
+      const owners = await getOwnerUids();
+      await Promise.all(owners.map(uid=> createNotification(uid, type, title, body)));
+    }
+    function setupNotifications(uid){
+      if(notifUnsub) notifUnsub();
+      document.getElementById("btn-notifications").classList.remove("hidden");
+      const q = query(collection(db,"notifications"), where("recipientUid","==",uid), orderBy("createdAt","desc"), limit(30));
+      notifUnsub = onSnapshot(q, (snap)=>{
+        const items = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        const unread = items.filter(n=> !n.read).length;
+        const badge = document.getElementById("notif-badge");
+        badge.textContent = unread > 9 ? "9+" : String(unread);
+        badge.classList.toggle("hidden", unread === 0);
+        renderNotifList(items);
+      }, (err)=> console.error("通知の取得に失敗しました", err));
+    }
+    function teardownNotifications(){
+      if(notifUnsub){ notifUnsub(); notifUnsub = null; }
+      document.getElementById("btn-notifications").classList.add("hidden");
+      document.getElementById("notif-panel").classList.add("hidden");
+    }
+    function renderNotifList(items){
+      const box = document.getElementById("notif-list");
+      if(!items.length){
+        box.innerHTML = `<p class="text-xs text-[var(--ink)]/50 p-4 text-center">通知はありません。</p>`;
+        return;
+      }
+      box.innerHTML = "";
+      items.forEach(n=>{
+        const row = document.createElement("button");
+        row.className = "w-full text-left p-2 text-xs hover:bg-[var(--paper-dim)]" + (n.read ? " opacity-50" : "");
+        const when = n.createdAt ? new Date(n.createdAt).toLocaleString("ja-JP") : "";
+        row.innerHTML = `
+          <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
+          ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
+          <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
+        `;
+        row.addEventListener("click", async ()=>{
+          if(!n.read) await updateDoc(doc(db,"notifications",n.id), { read: true });
+        });
+        box.appendChild(row);
+      });
+    }
+    document.getElementById("btn-notifications").addEventListener("click", ()=>{
+      document.getElementById("notif-panel").classList.toggle("hidden");
+    });
+    document.getElementById("notif-mark-all").addEventListener("click", async ()=>{
+      const snap = await getDocs(query(collection(db,"notifications"), where("recipientUid","==",currentUser.uid), where("read","==",false)));
+      await Promise.all(snap.docs.map(d=> updateDoc(doc(db,"notifications",d.id), { read: true })));
+    });
+    document.addEventListener("click", (e)=>{
+      const panel = document.getElementById("notif-panel");
+      const btn = document.getElementById("btn-notifications");
+      if(!panel.classList.contains("hidden") && !panel.contains(e.target) && !btn.contains(e.target)){
+        panel.classList.add("hidden");
+      }
+    });
+
     function renderShareChips(){
       const box = document.getElementById("wl-share-chips");
       box.innerHTML = "";
@@ -1161,6 +1394,7 @@
       renderShareChips(); renderContactsList();
       document.getElementById("wl-name-warning").classList.add("hidden");
       document.getElementById("wl-address-warning").classList.add("hidden");
+      document.getElementById("wl-autofill-status").classList.add("hidden");
     }
     resetWishlistForm(); // 初期表示用に空のリンク行を1つ用意
     document.getElementById("wl-links-add").addEventListener("click", ()=>{
@@ -1170,7 +1404,9 @@
       showNameWarning("wl-name-warning", e.target.value, { excludeWishId: document.getElementById("wl-edit-id").value });
     });
     document.getElementById("wl-address").addEventListener("blur", (e)=>{
-      checkAddressDuplicate("wl-address-warning", e.target.value.trim(), { excludeWishId: document.getElementById("wl-edit-id").value });
+      const address = e.target.value.trim();
+      checkAddressDuplicate("wl-address-warning", address, { excludeWishId: document.getElementById("wl-edit-id").value });
+      autofillWishlistAddressFields(address);
     });
     function startEditWishItem(item){
       document.getElementById("wl-edit-id").value = item.id;
@@ -1206,9 +1442,19 @@
     });
 
     async function notifySharedRecipients(storeName, newEmails){
-      // EmailJSの共有用テンプレートが未設定（プレースホルダーのまま）の場合は何もしない
-      if(!EMAILJS_SHARE_TEMPLATE_ID || EMAILJS_SHARE_TEMPLATE_ID.includes("ここに")) return;
       for(const email of newEmails){
+        // アプリ内通知：相手がおかログにログイン済み（＝usersにアカウントがある）なら通知を作成
+        try{
+          const snap = await getDocs(query(collection(db,"users"), where("email","==",email)));
+          if(!snap.empty){
+            await createNotification(snap.docs[0].id, "wishlist_shared", `「${storeName}」が共有されました`,
+              `${currentNickname}さんが共有しました。`);
+          }
+        }catch(e){
+          console.error("共有のアプリ内通知の作成に失敗しました", email, e);
+        }
+        // メール通知（EmailJSの共有用テンプレートが設定されている場合のみ）
+        if(!EMAILJS_SHARE_TEMPLATE_ID || EMAILJS_SHARE_TEMPLATE_ID.includes("ここに")) continue;
         try{
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_SHARE_TEMPLATE_ID, {
             to_email: email, sharer_name: currentNickname, store_name: storeName,
@@ -1306,22 +1552,40 @@
       renderMarkers(filtered, "wishlist");
     }
 
-    function renderWishlistList(items){
+    async function renderWishlistList(items){
       const list = document.getElementById("list"); const empty = document.getElementById("empty-state");
       document.getElementById("result-count").textContent = `${items.length}件`;
       list.innerHTML = ""; empty.classList.toggle("hidden", items.length>0);
 
+      // 自分の連絡先に登録している相手なら、登録者名・感想投稿者名を自分がつけた呼び方で表示する
+      // （匿名登録は対象外＝相手の匿名性を守るため、連絡先で名寄せしても表示は変えない）
+      const uidsToResolve = new Set();
+      items.forEach(item=>{
+        if(!item.anonymous && item.addedBy) uidsToResolve.add(item.addedBy);
+        if(item.status === "visited" && item.impressionByUid) uidsToResolve.add(item.impressionByUid);
+      });
+      await Promise.all([...uidsToResolve].map(uid=> getEmailForUid(uid)));
+      function friendlyNameForUid(uid, fallback){
+        if(!uid) return fallback;
+        const email = uidEmailCache[uid];
+        if(!email) return fallback;
+        const contact = myContacts.find(c=> c.email.toLowerCase() === email);
+        return contact ? contact.nickname : fallback;
+      }
+
       items.forEach(item=>{
         const isMine = currentUser && item.addedBy === currentUser.uid;
-        const requesterLabel = item.anonymous ? "（匿名）" : `${item.addedByNickname || "名無しさん"} さんが登録`;
+        const registrantName = item.anonymous ? "（匿名）" : `${friendlyNameForUid(item.addedBy, item.addedByNickname || "名無しさん")} さんが登録`;
+        const requesterLabel = registrantName;
         const canManage = isMine || currentRole === "owner"; // 編集・削除は「登録した人」と「オーナー」のみ
         const visited = item.status === "visited";
+        const impressionAuthorName = friendlyNameForUid(item.impressionByUid, item.impressionByNickname || "名無しさん");
         const mapQuery = (item.lat && item.lng) ? `${item.lat},${item.lng}` : (item.address || item.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         const myEmail = currentUser?.email?.toLowerCase();
         const sharedWithMe = myEmail && (item.sharedWithEmails||[]).includes(myEmail) && !isMine;
         const shareLabel = (isMine || currentRole==="owner") && item.sharedWith?.length
-          ? `<p class="text-[10px] text-[var(--wish)] mt-1">共有先：${item.sharedWith.map(s=>s.nickname||s.email).join("、")}</p>` : "";
+          ? `<p class="text-[10px] text-[var(--wish)] mt-1">共有先：${item.sharedWith.map(s=>nicknameForEmail(s.email)||s.nickname||s.email).join("、")}</p>` : "";
 
         const card = document.createElement("article");
         card.className = "store-card wish-card bg-white border border-[var(--line)] rounded-xl p-3";
@@ -1348,7 +1612,7 @@
           </div>
           ${visited ? `
             <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
-              <div><span class="font-bold">${item.impressionByNickname || "名無しさん"}さんの感想：</span>${item.impression}</div>
+              <div><span class="font-bold">${impressionAuthorName}さんの感想：</span>${item.impression}</div>
               ${(currentRole === "owner" || currentRole === "editor") ? `
                 <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">実際に行って良かった店として登録する</button>
               ` : ""}
@@ -1379,7 +1643,7 @@
             const text = input.value.trim();
             if(!text) return;
             await updateDoc(doc(db,"wishlist",item.id), {
-              status: "visited", impression: text, impressionByNickname: currentNickname,
+              status: "visited", impression: text, impressionByNickname: currentNickname, impressionByUid: currentUser.uid,
             });
             notifyWishlistRegistrant(item, text);
             loadWishlist();
@@ -1407,6 +1671,8 @@
 
     async function notifyWishlistRegistrant(item, impressionText){
       if(!item.addedBy || item.addedBy === currentUser.uid) return;
+      await createNotification(item.addedBy, "wishlist_comment", `「${item.name}」に感想が届きました`,
+        `${currentNickname}さん：${impressionText}`);
       try{
         const userSnap = await getDoc(doc(db,"users",item.addedBy));
         if(!userSnap.exists()) return;

@@ -67,6 +67,20 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
+    // notifications：アプリ内通知。宛先本人だけが読み書き（既読化）できる。
+    // 作成は「ログインしていれば誰でも他人宛てに作成可」（削除依頼・共有・感想・編集権限申請の通知に必要なため）
+    match /notifications/{id} {
+      allow read, update, delete: if request.auth != null && resource.data.recipientUid == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+
+    // roleRequests：編集権限の申請。本人とオーナーだけが読める。作成は本人のみ。
+    match /roleRequests/{id} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null &&
+        (resource.data.uid == request.auth.uid || isEditorOrOwner());
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
