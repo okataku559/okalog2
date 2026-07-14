@@ -27,8 +27,11 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId
                      && request.resource.data.role == 'member';
-      allow update: if request.auth != null && request.auth.uid == userId
-                     && request.resource.data.role == resource.data.role;
+      // 本人は自分のdisplayName等だけ変更可（roleは変更不可）。オーナーは他人のroleも変更できる（メンバー管理用）
+      allow update: if request.auth != null && (
+                       (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+                       isOwner()
+                     );
     }
 
     // reviews：ログインしていれば誰でも投稿可（本人になりすまし防止のためauthorUidを検証）。
@@ -79,6 +82,7 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       allow read: if request.auth != null &&
         (resource.data.uid == request.auth.uid || isEditorOrOwner());
+      allow update: if request.auth != null && isOwner();
     }
 
     match /{document=**} {

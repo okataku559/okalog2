@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかログ｜通知</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{ --ink:#1F2421; --paper:#FBF7EE; --paper-dim:#F1EBDC; --shu:#B23A22; --wish:#2B5DA6; --line:#DDD3BE; }
+  html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
+  .mock{ background:#fff; border:1px solid var(--line); border-radius:.75rem; }
+  .btn-wish{ background:var(--wish); color:#fff; }
+  .tab[data-active="true"]{ background:var(--ink); color:#fff; border-color:var(--ink); }
+</style>
+</head>
+<body class="min-h-screen">
+
+  <header class="bg-[var(--ink)] text-[var(--paper)]">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <a href="index.html"><img src="logo.png" alt="おかログ" class="h-12 w-auto rounded-lg"></a>
+        <h1 class="text-base md:text-lg font-bold">通知</h1>
+      </div>
+      <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">ホームに戻る</a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+
+    <div id="login-required" class="hidden mock p-6 text-center space-y-3">
+      <p class="text-sm">通知の確認には、Googleログインが必要です。</p>
+      <button id="btn-login" class="btn-wish rounded-full px-4 py-2 text-sm">Googleでログイン</button>
+    </div>
+
+    <div id="content" class="hidden space-y-4">
+      <div class="mock p-4 flex items-center justify-between flex-wrap gap-2">
+        <p class="text-sm">
+          未読 <span id="unread-count" class="font-bold text-[var(--shu)] text-lg">0</span> 件
+          ／ 全 <span id="total-count" class="font-bold">0</span> 件
+        </p>
+        <button id="btn-mark-all" class="text-xs underline underline-offset-2 text-[var(--wish)]">すべて既読にする</button>
+      </div>
+
+      <div class="flex gap-2">
+        <button data-value="all" class="tab text-xs border border-[var(--line)] rounded-full px-3 py-1.5 bg-white" data-active="true">すべて</button>
+        <button data-value="unread" class="tab text-xs border border-[var(--line)] rounded-full px-3 py-1.5 bg-white">未読のみ</button>
+      </div>
+
+      <div id="notif-list" class="space-y-2"></div>
+      <p id="notif-empty" class="hidden text-xs text-[var(--ink)]/50 text-center py-10">通知はありません。</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { db, auth, googleProvider } from "./firebase-init.js";
+    import {
+      collection, getDocs, getDoc, setDoc, updateDoc, doc, query, where, orderBy, limit
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    let currentUser = null;
+    let allNotifs = [];
+    let filterMode = "all"; // 'all' | 'unread'
+
+    function generateShareId(){
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let id = ""; for(let i=0;i<6;i++) id += chars[Math.floor(Math.random()*chars.length)];
+      return id;
+    }
+    async function ensureUserDoc(user){
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref).catch(()=>null);
+      if(!snap || !snap.exists()){
+        await setDoc(ref, { email:user.email, displayName:user.displayName||"名無しさん", role:"member", shareId: generateShareId(), createdAt:new Date().toISOString() });
+      }
+    }
+
+    document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+
+    onAuthStateChanged(auth, async (user)=>{
+      currentUser = user;
+      const loginBox = document.getElementById("login-required");
+      const content = document.getElementById("content");
+      if(user){
+        await ensureUserDoc(user);
+        loginBox.classList.add("hidden"); content.classList.remove("hidden");
+        await loadNotifications();
+      }else{
+        loginBox.classList.remove("hidden"); content.classList.add("hidden");
+      }
+    });
+
+    async function loadNotifications(){
+      const snap = await getDocs(query(collection(db,"notifications"), where("recipientUid","==",currentUser.uid), orderBy("createdAt","desc"), limit(100)));
+      allNotifs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      render();
+    }
+
+    const TYPE_ICON = {
+      delete_request: "🗑️", wishlist_comment: "💬", wishlist_shared: "🔗",
+      editor_request: "🙋", role_approved: "✅", role_rejected: "🙇", role_changed: "🔧",
+    };
+
+    function render(){
+      const total = allNotifs.length;
+      const unread = allNotifs.filter(n=>!n.read).length;
+      document.getElementById("total-count").textContent = total;
+      document.getElementById("unread-count").textContent = unread;
+      document.title = unread > 0 ? `(${unread}) おかログ｜通知` : "おかログ｜通知";
+
+      const items = filterMode === "unread" ? allNotifs.filter(n=>!n.read) : allNotifs;
+      const box = document.getElementById("notif-list");
+      const empty = document.getElementById("notif-empty");
+      box.innerHTML = "";
+      empty.classList.toggle("hidden", items.length>0);
+
+      items.forEach(n=>{
+        const when = n.createdAt ? new Date(n.createdAt).toLocaleString("ja-JP") : "";
+        const row = document.createElement("button");
+        row.className = "w-full text-left mock p-3 flex gap-3 items-start" + (n.read ? " opacity-50" : "");
+        row.innerHTML = `
+          <span class="text-xl shrink-0">${TYPE_ICON[n.type] || "🔔"}</span>
+          <div class="min-w-0 flex-1">
+            <p class="font-bold text-sm">${n.read ? "" : '<span class="text-[var(--shu)]">●</span> '}${n.title}</p>
+            ${n.body ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${n.body}</p>` : ""}
+            <p class="text-[10px] text-[var(--ink)]/40 mt-1">${when}</p>
+          </div>
+        `;
+        row.addEventListener("click", async ()=>{
+          if(!n.read){
+            await updateDoc(doc(db,"notifications",n.id), { read: true });
+            n.read = true;
+            render();
+          }
+        });
+        box.appendChild(row);
+      });
+    }
+
+    document.querySelectorAll(".tab").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        document.querySelectorAll(".tab").forEach(b=> b.dataset.active = "false");
+        btn.dataset.active = "true";
+        filterMode = btn.dataset.value;
+        render();
+      });
+    });
+
+    document.getElementById("btn-mark-all").addEventListener("click", async ()=>{
+      const unread = allNotifs.filter(n=>!n.read);
+      await Promise.all(unread.map(n=> updateDoc(doc(db,"notifications",n.id), { read: true })));
+      unread.forEach(n=> n.read = true);
+      render();
+    });
+  </script>
+</body>
+</html>

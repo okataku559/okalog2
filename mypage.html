@@ -34,15 +34,16 @@
       </div>
       <div class="flex items-center gap-3">
         <div class="relative">
-          <button id="btn-notifications" class="hidden relative text-lg" aria-label="通知">
-            🔔<span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-[var(--shu)] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">0</span>
+          <button id="btn-notifications" class="hidden relative text-lg flex items-center gap-1" aria-label="通知">
+            🔔<span id="notif-badge" class="hidden bg-[var(--shu)] text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">0件</span>
           </button>
           <div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 max-w-[90vw] bg-white text-[var(--ink)] border border-[var(--line)] rounded-xl shadow-lg z-30 max-h-96 overflow-y-auto">
             <div class="p-2 border-b border-[var(--line)] flex items-center justify-between">
-              <p class="text-xs font-bold px-1">通知</p>
+              <p class="text-xs font-bold px-1">通知（<span id="notif-panel-unread">0</span>件未読）</p>
               <button id="notif-mark-all" class="text-[10px] underline text-[var(--wish)]">すべて既読にする</button>
             </div>
             <div id="notif-list" class="divide-y divide-[var(--line)]"></div>
+            <a href="notifications.html" class="block text-center text-xs text-[var(--wish)] underline underline-offset-2 p-2 border-t border-[var(--line)]">すべての通知を見る</a>
           </div>
         </div>
         <a href="index.html" class="text-xs md:text-sm underline underline-offset-2">ホームに戻る</a>
@@ -127,6 +128,22 @@
         <p id="my-wishlist-empty" class="hidden text-xs text-[var(--ink)]/50 text-center py-6">まだ登録がありません。</p>
       </section>
 
+      <!-- オーナー専用：編集権限の申請管理 -->
+      <section id="owner-role-requests-section" class="hidden">
+        <h2 class="section-title text-xl font-bold mb-3">編集権限の申請（オーナー専用）</h2>
+        <div id="role-requests-list" class="space-y-2"></div>
+        <p id="role-requests-empty" class="hidden text-xs text-[var(--ink)]/50 text-center py-6">申請中のものはありません。</p>
+      </section>
+
+      <!-- オーナー専用：メンバー管理 -->
+      <section id="owner-members-section" class="hidden">
+        <h2 class="section-title text-xl font-bold mb-3">メンバー管理（オーナー専用）</h2>
+        <p class="text-xs text-[var(--ink)]/60 mb-2">
+          編集者⇔ログインユーザーの権限変更ができます。オーナー権限の付与・剥奪はFirebaseコンソールから行ってください。
+        </p>
+        <div id="members-list" class="space-y-2"></div>
+      </section>
+
     </div>
   </main>
 
@@ -193,6 +210,12 @@
         document.getElementById("pf-role-request-row").classList.toggle("hidden", currentRole !== "member");
         await loadContacts(); await loadGroups(); await loadMyWishlist(); await loadMyVisited();
         setupNotifications(user.uid);
+        if(currentRole === "owner"){
+          document.getElementById("owner-role-requests-section").classList.remove("hidden");
+          document.getElementById("owner-members-section").classList.remove("hidden");
+          await loadRoleRequests();
+          await loadMembers();
+        }
       }else{
         loginBox.classList.remove("hidden"); content.classList.add("hidden");
         teardownNotifications();
@@ -209,8 +232,9 @@
         const items = snap.docs.map(d=>({id:d.id, ...d.data()}));
         const unread = items.filter(n=> !n.read).length;
         const badge = document.getElementById("notif-badge");
-        badge.textContent = unread > 9 ? "9+" : String(unread);
+        badge.textContent = unread > 99 ? "99+件" : `${unread}件`;
         badge.classList.toggle("hidden", unread === 0);
+        document.getElementById("notif-panel-unread").textContent = unread;
         renderNotifList(items);
       }, (err)=> console.error("通知の取得に失敗しました", err));
     }
@@ -500,6 +524,99 @@
         box.appendChild(row);
       });
     }
+
+    // ---------------- オーナー専用：編集権限の申請管理 ----------------
+    async function loadRoleRequests(){
+      const snap = await getDocs(query(collection(db,"roleRequests"), where("status","==","pending")));
+      const requests = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (b.createdAt||"").localeCompare(a.createdAt||""));
+      const box = document.getElementById("role-requests-list");
+      const empty = document.getElementById("role-requests-empty");
+      box.innerHTML = "";
+      empty.classList.toggle("hidden", requests.length>0);
+      requests.forEach(r=>{
+        const row = document.createElement("div");
+        row.className = "mock p-3 space-y-2";
+        const when = r.createdAt ? new Date(r.createdAt).toLocaleString("ja-JP") : "";
+        row.innerHTML = `
+          <div>
+            <p class="font-bold text-sm">${r.nickname || "名無しさん"}さん <span class="text-xs text-[var(--ink)]/50 font-normal">（${r.email}）</span></p>
+            <p class="text-xs text-[var(--ink)]/40">${when}</p>
+          </div>
+          <p class="text-sm bg-[var(--paper-dim)] rounded p-2">${r.message}</p>
+          <div class="flex gap-2">
+            <button class="btn-wish rounded-full px-3 py-1 text-xs" data-role="approve">承認して編集者にする</button>
+            <button class="text-xs px-3 py-1 rounded-full border border-[var(--line)]" data-role="reject">却下する</button>
+          </div>
+        `;
+        row.querySelector('[data-role="approve"]').addEventListener("click", async ()=>{
+          if(!confirm(`${r.nickname}さんを編集者にします。よろしいですか？`)) return;
+          await updateDoc(doc(db,"users",r.uid), { role: "editor" });
+          await updateDoc(doc(db,"roleRequests",r.id), { status: "approved" });
+          await addDoc(collection(db,"notifications"), {
+            recipientUid: r.uid, type: "role_approved", title: "編集権限が承認されました",
+            body: "編集者としてお店の登録・編集ができるようになりました。", read:false, createdAt:new Date().toISOString(),
+          });
+          await loadRoleRequests(); await loadMembers();
+        });
+        row.querySelector('[data-role="reject"]').addEventListener("click", async ()=>{
+          if(!confirm(`${r.nickname}さんの申請を却下します。よろしいですか？`)) return;
+          await updateDoc(doc(db,"roleRequests",r.id), { status: "rejected" });
+          await addDoc(collection(db,"notifications"), {
+            recipientUid: r.uid, type: "role_rejected", title: "編集権限の申請について",
+            body: "今回は編集権限の付与を見送らせていただきました。", read:false, createdAt:new Date().toISOString(),
+          });
+          await loadRoleRequests();
+        });
+        box.appendChild(row);
+      });
+    }
+
+    // ---------------- オーナー専用：メンバー管理 ----------------
+    async function loadMembers(){
+      const snap = await getDocs(collection(db,"users"));
+      const members = snap.docs
+        .map(d=>({uid:d.id, ...d.data()}))
+        .filter(m=> m.role !== "owner")
+        .sort((a,b)=> (a.displayName||"").localeCompare(b.displayName||""));
+      const box = document.getElementById("members-list");
+      box.innerHTML = "";
+      if(!members.length){
+        box.innerHTML = `<p class="text-xs text-[var(--ink)]/50">まだ他のメンバーがいません。</p>`;
+        return;
+      }
+      members.forEach(m=>{
+        const row = document.createElement("div");
+        row.className = "mock p-3 flex items-center justify-between gap-2 flex-wrap";
+        row.innerHTML = `
+          <div class="min-w-0">
+            <p class="font-bold text-sm">${m.displayName || "名無しさん"}</p>
+            <p class="text-xs text-[var(--ink)]/50">${m.email || ""}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <select class="border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="role-select">
+              <option value="member"${m.role==="member"?" selected":""}>ログインユーザー</option>
+              <option value="editor"${m.role==="editor"?" selected":""}>編集者</option>
+            </select>
+            <button class="text-xs underline underline-offset-2 text-[var(--wish)]" data-role="save-role">変更する</button>
+          </div>
+        `;
+        row.querySelector('[data-role="save-role"]').addEventListener("click", async ()=>{
+          const newRole = row.querySelector('[data-role="role-select"]').value;
+          if(newRole === m.role) return;
+          if(!confirm(`${m.displayName}さんの権限を「${newRole==="editor"?"編集者":"ログインユーザー"}」に変更します。よろしいですか？`)) return;
+          await updateDoc(doc(db,"users",m.uid), { role: newRole });
+          await addDoc(collection(db,"notifications"), {
+            recipientUid: m.uid, type: "role_changed", title: "権限が変更されました",
+            body: `あなたの権限が「${newRole==="editor"?"編集者":"ログインユーザー"}」に変更されました。`,
+            read:false, createdAt:new Date().toISOString(),
+          });
+          m.role = newRole;
+          alert("変更しました。");
+        });
+        box.appendChild(row);
+      });
+    }
   </script>
+
 </body>
 </html>
