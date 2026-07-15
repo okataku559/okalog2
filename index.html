@@ -680,7 +680,7 @@
         }else if(s.deleteRequested && isRequester){
           deleteBadge = ' <span class="text-[10px] text-[var(--shu)] border border-[var(--shu)] rounded-full px-2 py-0.5 align-middle">削除依頼中</span>';
         }
-        const mapQuery = (s.lat && s.lng) ? `${s.lat},${s.lng}` : (s.address || s.name);
+        const mapQuery = s.address ? `${s.name} ${s.address}` : (s.lat && s.lng ? `${s.lat},${s.lng}` : s.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         const hasLocation = !!(s.lat && s.lng);
         const card = document.createElement("article");
@@ -1684,7 +1684,7 @@
         const canManage = isMine || currentRole === "owner"; // 編集・削除は「登録した人」と「オーナー」のみ
         const visited = item.status === "visited";
         const impressionAuthorName = friendlyNameForUid(item.impressionByUid, item.impressionByNickname || "名無しさん");
-        const mapQuery = (item.lat && item.lng) ? `${item.lat},${item.lng}` : (item.address || item.name);
+        const mapQuery = item.address ? `${item.name} ${item.address}` : (item.lat && item.lng ? `${item.lat},${item.lng}` : item.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         const hasLocation = !!(item.lat && item.lng);
         const hasAddressButNoLocation = !!item.address && !hasLocation;
