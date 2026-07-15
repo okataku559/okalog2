@@ -41,7 +41,10 @@
           未読 <span id="unread-count" class="font-bold text-[var(--shu)] text-lg">0</span> 件
           ／ 全 <span id="total-count" class="font-bold">0</span> 件
         </p>
-        <button id="btn-mark-all" class="text-xs underline underline-offset-2 text-[var(--wish)]">すべて既読にする</button>
+        <div class="flex items-center gap-3">
+          <button id="btn-mark-all" class="text-xs underline underline-offset-2 text-[var(--wish)]">すべて既読にする</button>
+          <button id="btn-delete-all" class="text-xs underline underline-offset-2 text-[var(--shu)]">すべて削除</button>
+        </div>
       </div>
 
       <div class="flex gap-2">
@@ -162,6 +165,15 @@
       const unread = allNotifs.filter(n=>!n.read);
       await Promise.all(unread.map(n=> updateDoc(doc(db,"notifications",n.id), { read: true })));
       unread.forEach(n=> n.read = true);
+      render();
+    });
+
+    document.getElementById("btn-delete-all").addEventListener("click", async ()=>{
+      if(!confirm("通知をすべて削除します。よろしいですか？")) return;
+      const snap = await getDocs(query(collection(db,"notifications"), where("recipientUid","==",currentUser.uid)));
+      if(snap.empty) return;
+      await Promise.all(snap.docs.map(d=> deleteDoc(doc(db,"notifications",d.id))));
+      allNotifs = [];
       render();
     });
   </script>

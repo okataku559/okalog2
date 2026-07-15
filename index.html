@@ -66,9 +66,12 @@
             🔔<span id="notif-badge" class="hidden bg-[var(--shu)] text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">0件</span>
           </button>
           <div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 max-w-[90vw] bg-white text-[var(--ink)] border border-[var(--line)] rounded-xl shadow-lg z-30 max-h-96 overflow-y-auto">
-            <div class="p-2 border-b border-[var(--line)] flex items-center justify-between">
-              <p class="text-xs font-bold px-1">通知（<span id="notif-panel-unread">0</span>件未読）</p>
-              <button id="notif-mark-all" class="text-[10px] underline text-[var(--wish)]">すべて既読にする</button>
+            <div class="p-2 border-b border-[var(--line)] flex items-center justify-between gap-2">
+              <p class="text-xs font-bold px-1 shrink-0">通知（<span id="notif-panel-unread">0</span>件未読）</p>
+              <div class="flex items-center gap-2 shrink-0">
+                <button id="notif-mark-all" class="text-[10px] underline text-[var(--wish)]">すべて既読にする</button>
+                <button id="notif-delete-all" class="text-[10px] underline text-[var(--shu)]">すべて削除</button>
+              </div>
             </div>
             <div id="notif-list" class="divide-y divide-[var(--line)]"></div>
             <a href="notifications.html" class="block text-center text-xs text-[var(--wish)] underline underline-offset-2 p-2 border-t border-[var(--line)]">すべての通知を見る</a>
@@ -1277,6 +1280,12 @@
     document.getElementById("notif-mark-all").addEventListener("click", async ()=>{
       const snap = await getDocs(query(collection(db,"notifications"), where("recipientUid","==",currentUser.uid), where("read","==",false)));
       await Promise.all(snap.docs.map(d=> updateDoc(doc(db,"notifications",d.id), { read: true })));
+    });
+    document.getElementById("notif-delete-all").addEventListener("click", async ()=>{
+      if(!confirm("通知をすべて削除します。よろしいですか？")) return;
+      const snap = await getDocs(query(collection(db,"notifications"), where("recipientUid","==",currentUser.uid)));
+      if(snap.empty) return;
+      await Promise.all(snap.docs.map(d=> deleteDoc(doc(db,"notifications",d.id))));
     });
     document.addEventListener("click", (e)=>{
       const panel = document.getElementById("notif-panel");
