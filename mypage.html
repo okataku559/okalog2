@@ -215,6 +215,10 @@
           document.getElementById("owner-members-section").classList.remove("hidden");
           await loadRoleRequests();
           await loadMembers();
+          // 通知からのリンク（#owner-role-requests-section）で来た場合、表示され次第スクロールする
+          if(location.hash === "#owner-role-requests-section"){
+            document.getElementById("owner-role-requests-section").scrollIntoView({behavior:"smooth", block:"start"});
+          }
         }
       }else{
         loginBox.classList.remove("hidden"); content.classList.add("hidden");
@@ -251,16 +255,25 @@
       }
       box.innerHTML = "";
       items.forEach(n=>{
-        const row = document.createElement("button");
-        row.className = "w-full text-left p-2 text-xs hover:bg-[var(--paper-dim)]" + (n.read ? " opacity-50" : "");
+        const row = document.createElement("div");
+        row.className = "w-full text-left p-2 text-xs hover:bg-[var(--paper-dim)] flex items-start gap-1" + (n.read ? " opacity-50" : "");
         const when = n.createdAt ? new Date(n.createdAt).toLocaleString("ja-JP") : "";
         row.innerHTML = `
-          <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
-          ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
-          <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
+          <div class="flex-1 min-w-0 cursor-pointer" data-role="body">
+            <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
+            ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
+            <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
+          </div>
+          <button type="button" data-role="delete" class="shrink-0 text-[var(--ink)]/30 hover:text-[var(--shu)] px-1" title="この通知を削除">🗑</button>
         `;
-        row.addEventListener("click", async ()=>{
+        row.querySelector('[data-role="body"]').addEventListener("click", async ()=>{
           if(!n.read) await updateDoc(doc(db,"notifications",n.id), { read: true });
+          if(n.link) window.location.href = n.link;
+        });
+        row.querySelector('[data-role="delete"]').addEventListener("click", async (e)=>{
+          e.stopPropagation();
+          if(!confirm("この通知を削除しますか？")) return;
+          await deleteDoc(doc(db,"notifications",n.id));
         });
         box.appendChild(row);
       });
@@ -281,10 +294,10 @@
     });
 
     // ---------------- 編集権限の申請 ----------------
-    async function notifyOwners(type, title, body){
+    async function notifyOwners(type, title, body, link){
       const snap = await getDocs(query(collection(db,"users"), where("role","==","owner")));
       await Promise.all(snap.docs.map(d=> addDoc(collection(db,"notifications"), {
-        recipientUid: d.id, type, title, body: body||"", read:false, createdAt:new Date().toISOString(),
+        recipientUid: d.id, type, title, body: body||"", link: link||null, read:false, createdAt:new Date().toISOString(),
       })));
     }
     document.getElementById("pf-request-editor").addEventListener("click", ()=>{
@@ -304,7 +317,7 @@
           uid: currentUser.uid, email: currentUser.email, nickname: currentNickname,
           message, status: "pending", createdAt: new Date().toISOString(),
         });
-        await notifyOwners("editor_request", `編集権限の申請：${currentNickname}さん`, message);
+        await notifyOwners("editor_request", `編集権限の申請：${currentNickname}さん`, message, "mypage.html#owner-role-requests-section");
         statusEl.classList.remove("text-[var(--shu)]"); statusEl.classList.add("text-[var(--kin)]");
         statusEl.textContent = "申請しました。オーナーの承認をお待ちください。";
         setTimeout(()=> document.getElementById("editor-request-dialog").close(), 1200);

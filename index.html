@@ -378,7 +378,7 @@
           uid: currentUser.uid, email: currentUser.email, nickname: currentNickname,
           message, status: "pending", createdAt: new Date().toISOString(),
         });
-        await notifyOwners("editor_request", `編集権限の申請：${currentNickname}さん`, message);
+        await notifyOwners("editor_request", `編集権限の申請：${currentNickname}さん`, message, "mypage.html#owner-role-requests-section");
         statusEl.classList.remove("text-[var(--shu)]"); statusEl.classList.add("text-[var(--kin)]");
         statusEl.textContent = "申請しました。オーナーの承認をお待ちください。";
         setTimeout(()=> document.getElementById("editor-request-dialog").close(), 1200);
@@ -514,11 +514,19 @@
 
     // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・マイページからの遷移用）は自動でタブを切替
     // 「&edit=店舗ID」が付いていれば、データ読み込み後に自動でその項目の編集フォームを開く
+    // 「&highlight=対象ID」が付いていれば、データ読み込み後にその項目までスクロールしてハイライトする
+    // （通知一覧から遷移してきたときに使用）
     let pendingWishEditId = null;
+    let pendingHighlightId = null;
     const initialParams = new URLSearchParams(window.location.search);
     if(initialParams.get("mode") === "wishlist"){
       pendingWishEditId = initialParams.get("edit") || null;
       switchMode("wishlist");
+    }
+    if(initialParams.get("highlight")){
+      pendingHighlightId = initialParams.get("highlight");
+    }
+    if(initialParams.get("mode") || initialParams.get("highlight")){
       window.history.replaceState({}, "", window.location.pathname);
     }
 
@@ -781,7 +789,7 @@
         deleteRequestedBy: currentUser.uid,
         deleteRequestedAt: new Date().toISOString(),
       });
-      await notifyOwners("delete_request", `削除依頼：${store.name}`, `${currentNickname}さんが削除を依頼しました。`);
+      await notifyOwners("delete_request", `削除依頼：${store.name}`, `${currentNickname}さんが削除を依頼しました。`, `index.html?highlight=${store.id}`);
       try{
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
           store_name: store.name,
@@ -1201,17 +1209,17 @@
       ownerUidsCache = snap.docs.map(d=> d.id);
       return ownerUidsCache;
     }
-    async function createNotification(recipientUid, type, title, body){
+    async function createNotification(recipientUid, type, title, body, link){
       if(!recipientUid) return;
       try{
         await addDoc(collection(db,"notifications"), {
-          recipientUid, type, title, body: body || "", read: false, createdAt: new Date().toISOString(),
+          recipientUid, type, title, body: body || "", link: link || null, read: false, createdAt: new Date().toISOString(),
         });
       }catch(e){ console.error("通知の作成に失敗しました", e); }
     }
-    async function notifyOwners(type, title, body){
+    async function notifyOwners(type, title, body, link){
       const owners = await getOwnerUids();
-      await Promise.all(owners.map(uid=> createNotification(uid, type, title, body)));
+      await Promise.all(owners.map(uid=> createNotification(uid, type, title, body, link)));
     }
     function setupNotifications(uid){
       if(notifUnsub) notifUnsub();
@@ -1240,16 +1248,25 @@
       }
       box.innerHTML = "";
       items.forEach(n=>{
-        const row = document.createElement("button");
-        row.className = "w-full text-left p-2 text-xs hover:bg-[var(--paper-dim)]" + (n.read ? " opacity-50" : "");
+        const row = document.createElement("div");
+        row.className = "w-full text-left p-2 text-xs hover:bg-[var(--paper-dim)] flex items-start gap-1" + (n.read ? " opacity-50" : "");
         const when = n.createdAt ? new Date(n.createdAt).toLocaleString("ja-JP") : "";
         row.innerHTML = `
-          <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
-          ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
-          <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
+          <div class="flex-1 min-w-0 cursor-pointer" data-role="body">
+            <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
+            ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
+            <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
+          </div>
+          <button type="button" data-role="delete" class="shrink-0 text-[var(--ink)]/30 hover:text-[var(--shu)] px-1" title="この通知を削除">🗑</button>
         `;
-        row.addEventListener("click", async ()=>{
+        row.querySelector('[data-role="body"]').addEventListener("click", async ()=>{
           if(!n.read) await updateDoc(doc(db,"notifications",n.id), { read: true });
+          if(n.link) window.location.href = n.link;
+        });
+        row.querySelector('[data-role="delete"]').addEventListener("click", async (e)=>{
+          e.stopPropagation();
+          if(!confirm("この通知を削除しますか？")) return;
+          await deleteDoc(doc(db,"notifications",n.id));
         });
         box.appendChild(row);
       });
@@ -1470,14 +1487,14 @@
       document.getElementById("wl-form-details").open = false;
     });
 
-    async function notifySharedRecipients(storeName, newEmails){
+    async function notifySharedRecipients(storeName, newEmails, itemId){
       for(const email of newEmails){
         // アプリ内通知：相手がおかログにログイン済み（＝usersにアカウントがある）なら通知を作成
         try{
           const snap = await getDocs(query(collection(db,"users"), where("email","==",email)));
           if(!snap.empty){
             await createNotification(snap.docs[0].id, "wishlist_shared", `「${storeName}」が共有されました`,
-              `${currentNickname}さんが共有しました。`);
+              `${currentNickname}さんが共有しました。`, itemId ? `index.html?mode=wishlist&highlight=${itemId}` : null);
           }
         }catch(e){
           console.error("共有のアプリ内通知の作成に失敗しました", email, e);
@@ -1513,6 +1530,7 @@
       btn.disabled = true;
       try{
         const geo = await geocodeAddress(address);
+        let savedItemId = editId || null;
         if(editId){
           await updateDoc(doc(db,"wishlist",editId), {
             name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
@@ -1520,7 +1538,7 @@
             anonymous, sharedWith, sharedWithEmails: shareEmailsArr,
           });
         }else{
-          await addDoc(collection(db,"wishlist"), {
+          const newRef = await addDoc(collection(db,"wishlist"), {
             name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             addedBy: currentUser.uid,
@@ -1531,8 +1549,9 @@
             impression: "", impressionByNickname: "",
             createdAt: new Date().toISOString(),
           });
+          savedItemId = newRef.id;
         }
-        if(newlyShared.length) notifySharedRecipients(name, newlyShared);
+        if(newlyShared.length) notifySharedRecipients(name, newlyShared, savedItemId);
         resetWishlistForm();
         document.getElementById("wl-form-details").open = false;
         loadWishlist();
@@ -1553,6 +1572,10 @@
           const target = allWishItems.find(w=> w.id === pendingWishEditId);
           if(target) startEditWishItem(target);
           pendingWishEditId = null;
+        }
+        if(pendingHighlightId && allWishItems.some(w=> w.id === pendingHighlightId)){
+          window.__gotoListCard(pendingHighlightId);
+          pendingHighlightId = null;
         }
       }catch(e){
         console.error(e);
@@ -1717,7 +1740,7 @@
     async function notifyWishlistRegistrant(item, impressionText){
       if(!item.addedBy || item.addedBy === currentUser.uid) return;
       await createNotification(item.addedBy, "wishlist_comment", `「${item.name}」に感想が届きました`,
-        `${currentNickname}さん：${impressionText}`);
+        `${currentNickname}さん：${impressionText}`, `index.html?mode=wishlist&highlight=${item.id}`);
       try{
         const userSnap = await getDoc(doc(db,"users",item.addedBy));
         if(!userSnap.exists()) return;
@@ -1785,6 +1808,10 @@
       allStores = snap.docs.map(d=>({id:d.id, ...d.data()}));
       if(first){ restoreState(); renderFilterBar(); }
       if(viewMode === "official") applyFilters();
+      if(pendingHighlightId && allStores.some(s=> s.id === pendingHighlightId)){
+        window.__gotoListCard(pendingHighlightId);
+        pendingHighlightId = null;
+      }
     }
 
     fillStaticFormOptions();
