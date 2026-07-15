@@ -58,6 +58,9 @@
         <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">本当に行って良かったお店だけ。。。　関西中心にエリア拡大中。</p>
       </div>
       <div class="flex items-center gap-3 text-xs md:text-sm">
+        <button id="btn-share-app" class="flex items-center gap-1 bg-[var(--wish)]/20 border border-[var(--wish)] text-[var(--paper)] rounded-full px-3 py-1 hover:bg-[var(--wish)]/30 transition-colors">
+          <span aria-hidden="true">🔗</span> おかログを紹介する
+        </button>
         <a href="guide.html" class="flex items-center gap-1 bg-[var(--kin)]/20 border border-[var(--kin)] text-[var(--paper)] rounded-full px-3 py-1 hover:bg-[var(--kin)]/30 transition-colors">
           <span aria-hidden="true">📖</span> 使い方ガイド
         </a>
@@ -198,8 +201,12 @@
           <p id="wl-address-warning" class="hidden text-xs text-[var(--shu)] bg-[#FBEDE9] rounded p-2"></p>
           <p id="wl-autofill-status" class="hidden text-xs text-[var(--kin)] bg-[var(--paper-dim)] rounded p-2"></p>
           <div class="grid grid-cols-2 gap-2">
-            <select id="wl-pref" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
-            <select id="wl-area" class="border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+            <label class="block text-xs font-bold">都道府県 <span class="text-[var(--ink)]/40 font-normal">任意・住所から自動入力</span>
+              <select id="wl-pref" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+            </label>
+            <label class="block text-xs font-bold">エリア <span class="text-[var(--ink)]/40 font-normal">任意・住所から自動入力</span>
+              <select id="wl-area" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+            </label>
           </div>
           <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
             <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
@@ -211,7 +218,7 @@
             <div id="wl-scenes" class="flex flex-wrap gap-1.5"></div>
           </div>
           <div>
-            <p class="text-xs font-bold mb-1">参考リンク（食べログ・Instagramなど、複数登録できます）</p>
+            <p class="text-xs font-bold mb-1">参考リンク <span class="text-[var(--ink)]/40 font-normal">任意</span>（食べログ・Instagramなど、複数登録できます）</p>
             <div id="wl-links" class="space-y-1"></div>
             <button type="button" id="wl-links-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ リンクを追加</button>
           </div>
@@ -701,6 +708,7 @@
           ${renderLinkPills(normalizeLinks(s, "url", "外部リンク"), "--shu")}
           <div class="flex flex-wrap gap-2 mt-2 text-xs items-center">
             <button data-role="toggle-review" class="underline underline-offset-2 text-[var(--ink)]/70">口コミを見る・書く</button>
+            <button data-role="share" class="underline underline-offset-2 text-[var(--wish)]">🔗 共有する</button>
             ${currentUser ? (myVisitedIds.has(s.id)
               ? `<span class="text-[10px] bg-[var(--kin)] text-white rounded-full px-2 py-0.5">✓ 行った店として記録済み</span><button data-role="unmark-visited" class="underline underline-offset-2 text-[var(--ink)]/50">取り消す</button>`
               : `<button data-role="mark-visited" class="underline underline-offset-2 text-[var(--kin)]">✓ 実際に行った</button>`) : ""}
@@ -713,6 +721,7 @@
         `;
         card.querySelector('[data-role="focus"]').addEventListener("click", ()=> focusStore(s));
         card.querySelector('[data-role="toggle-review"]').addEventListener("click", ()=> toggleReviewBox(card, s));
+        card.querySelector('[data-role="share"]').addEventListener("click", (e)=>{ e.stopPropagation(); shareStoreCard(s.name, s.id, "official"); });
         card.querySelector('[data-role="retry-geocode"]')?.addEventListener("click", async (e)=>{
           e.stopPropagation();
           const btn = e.target; btn.disabled = true; btn.textContent = "再取得中…";
@@ -793,15 +802,6 @@
         deleteRequestedAt: new Date().toISOString(),
       });
       await notifyOwners("delete_request", `削除依頼：${store.name}`, `${currentNickname}さんが削除を依頼しました。`, `index.html?highlight=${store.id}`);
-      try{
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-          store_name: store.name,
-          requester_name: currentNickname,
-          request_date: new Date().toLocaleString("ja-JP"),
-        });
-      }catch(e){
-        console.error("削除依頼メールの送信に失敗しました", e);
-      }
       await loadStoresAndRefresh();
     }
     async function rejectDeleteRequest(store){
@@ -956,6 +956,8 @@
       fillWishlistFormAreaSelect();
     }
     document.getElementById("wl-pref").addEventListener("change", fillWishlistFormAreaSelect);
+    // 「行ってみたい店」から昇格して登録するとき、保存成功後に元データを削除するためのID
+    let promotingWishId = null;
     function openStoreModal(store, prefill){
       document.getElementById("store-dialog-title").textContent = store ? "「" + store.name + "」を編集する" : "＋ 実際に行って良かった店を登録する";
       document.getElementById("sf-cancel").classList.toggle("hidden", !store);
@@ -984,6 +986,7 @@
       document.getElementById("sf-status").textContent = prefill
         ? "行ってみたい店リストから登録しています。ジャンル・エリア・住所など残りの項目を確認・入力してください。"
         : "";
+      promotingWishId = prefill?.sourceWishId || null;
       const selectedScenes = new Set(store?.scenes || []);
       document.querySelectorAll('#sf-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedScenes.has(cb.value));
       showNameWarning("sf-name-warning", document.getElementById("sf-name").value, { excludeStoreId: store?.id });
@@ -992,6 +995,7 @@
       sfDetails.scrollIntoView({behavior:"smooth", block:"start"});
     }
     function resetStoreForm(){
+      promotingWishId = null;
       openStoreModal(null);
       sfDetails.open = false;
     }
@@ -1121,9 +1125,15 @@
         data.deleteRequested = false;
         data.curationNo = await nextCurationNo();
         await addDoc(collection(db,"restaurants"), data);
+        if(promotingWishId){
+          // 「行ってみたい店」からの昇格で新規登録した場合、重複を防ぐため元データを削除する
+          await deleteDoc(doc(db,"wishlist",promotingWishId)).catch(e=> console.error("行ってみたい店データの削除に失敗しました", e));
+          promotingWishId = null;
+        }
       }
       resetStoreForm();
       await loadStoresAndRefresh();
+      await loadWishlist();
     });
 
     // ---------------------------------------------------------------
@@ -1351,6 +1361,39 @@
       const idEl = document.getElementById("wl-my-share-id");
       if(idEl) idEl.textContent = currentShareId || "-";
     }
+    // お店1件をLINE・X・Instagram等へ共有するための共通処理（Web Share API、非対応時はコピー）
+    async function shareStoreCard(name, id, mode){
+      const url = mode === "wishlist"
+        ? `${location.origin}${location.pathname}?mode=wishlist&highlight=${id}`
+        : `${location.origin}${location.pathname}?highlight=${id}`;
+      const text = `【おかログ】${name}\n${url}`;
+      if(navigator.share){
+        try{ await navigator.share({ title: `おかログ｜${name}`, text, url }); return; }
+        catch(e){ if(e.name === "AbortError") return; }
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        alert("共有メッセージをコピーしました。LINEやX、Instagramのメッセージなどに貼り付けて送ってください。");
+      }catch(e){
+        prompt("この内容をコピーして送ってください", text);
+      }
+    }
+    // 「おかログ」自体を友達に紹介するための共有（ヘッダーのボタンから）
+    async function shareApp(){
+      const url = `${location.origin}${location.pathname}`;
+      const text = `【おかログ】本当に行って良かったお店だけを載せているグルメサイトです。\n${url}`;
+      if(navigator.share){
+        try{ await navigator.share({ title: "おかログ｜本当に行って良かったお店だけ。", text, url }); return; }
+        catch(e){ if(e.name === "AbortError") return; }
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        alert("紹介メッセージをコピーしました。LINEやX、Instagramのメッセージなどに貼り付けて送ってください。");
+      }catch(e){
+        prompt("この内容をコピーして送ってください", text);
+      }
+    }
+    document.getElementById("btn-share-app").addEventListener("click", shareApp);
     function shareShareIdText(){
       return `【おかログ】私の共有IDは「${currentShareId}」です。\nこのIDを「行ってみたい店」の共有先に追加すると、お店を教え合えます。\n${location.origin}${location.pathname}`;
     }
@@ -1672,6 +1715,7 @@
               ${shareLabel}
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
+              <button data-role="share" class="text-xs text-[var(--wish)] underline underline-offset-2">🔗 共有する</button>
               ${canManage ? `<button data-role="edit-wish" class="text-xs text-[var(--wish)] underline underline-offset-2">編集</button>` : ""}
               ${canManage ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2">削除</button>` : ""}
             </div>
@@ -1695,6 +1739,7 @@
             </div>
           `}
         `;
+        card.querySelector('[data-role="share"]').addEventListener("click", (e)=>{ e.stopPropagation(); shareStoreCard(item.name, item.id, "wishlist"); });
         if(canManage){
           card.querySelector('[data-role="edit-wish"]').addEventListener("click", ()=> startEditWishItem(item));
           card.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
@@ -1739,6 +1784,7 @@
             openStoreModal(null, {
               name: item.name, memo, links: normalizeLinks(item, "referenceUrl", "参考リンク"),
               address: item.address || "", genre: item.genre || "", prefecture: item.prefecture || "", area: item.area || "",
+              sourceWishId: item.id,
             });
           });
         }
