@@ -70,6 +70,18 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
+    // favorites：お気に入り（実際に行って良かった店／行ってみたい店、両方対応）。本人のものだけ読み書き可能。
+    match /favorites/{id} {
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    // lowRatingFlags：低評価が続いた店をオーナーに知らせる際の「通知済みフラグ」。
+    // restaurantsへの書き込みは編集者以上限定のため、口コミ投稿者（member含む）でも書ける別コレクションで管理する。
+    match /lowRatingFlags/{restaurantId} {
+      allow read, write: if request.auth != null;
+    }
+
     // notifications：アプリ内通知。宛先本人だけが読み書き（既読化）できる。
     // 作成は「ログインしていれば誰でも他人宛てに作成可」（削除依頼・共有・感想・編集権限申請の通知に必要なため）
     match /notifications/{id} {

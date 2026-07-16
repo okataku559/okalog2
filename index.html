@@ -168,6 +168,9 @@
         <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
+        <label id="f-favorites-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
+          <input type="checkbox" id="f-favorites-only"> ❤ お気に入りのみ
+        </label>
         <label id="f-missing-location-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
           <input type="checkbox" id="f-missing-location"> ⚠ 地図位置未設定のみ
         </label>
@@ -275,6 +278,9 @@
             <button data-value="unvisited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">未訪問</button>
             <button data-value="visited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">訪問済み</button>
           </div>
+          <label class="flex items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
+            <input type="checkbox" id="wl-f-favorites-only"> ❤ お気に入りのみ
+          </label>
         </div>
       </div>
     </div>
@@ -418,11 +424,14 @@
         formSection.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
         document.getElementById("f-missing-location-row").classList.toggle("hidden", currentRole !== "owner");
         document.getElementById("f-missing-location-row").classList.toggle("flex", currentRole === "owner");
+        document.getElementById("f-favorites-row").classList.remove("hidden");
+        document.getElementById("f-favorites-row").classList.add("flex");
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
         document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
         formSection.classList.add("hidden");
         document.getElementById("f-missing-location-row").classList.add("hidden");
+        document.getElementById("f-favorites-row").classList.add("hidden");
       }
       renderWishlistAuthState();
     }
@@ -436,11 +445,12 @@
         currentNickname = data.displayName || user.displayName || "名無しさん";
         currentShareId = data.shareId || "";
         await loadMyVisited();
+        await loadMyFavorites();
         await loadContactsAndGroups(); // 口コミ等の表示名解決にも使うため、タブに関わらず読み込む
         setupNotifications(user.uid);
       }else{
         currentRole = "anonymous"; currentNickname = ""; currentShareId = ""; myVisitedIds = new Set();
-        myContacts = []; myGroups = [];
+        myContacts = []; myGroups = []; myFavorites = new Set();
         teardownNotifications();
       }
       renderAuthArea();
@@ -556,6 +566,34 @@
         console.error("行った記録の読み込みに失敗しました", e);
       }
     }
+    // ---------------------------------------------------------------
+    // お気に入り（実際に行って良かった店／行ってみたい店の両方で使える、個人ごとのブックマーク）
+    // ---------------------------------------------------------------
+    let myFavorites = new Set(); // "official:id" / "wishlist:id"
+    async function loadMyFavorites(){
+      if(!currentUser){ myFavorites = new Set(); return; }
+      try{
+        const snap = await getDocs(query(collection(db,"favorites"), where("uid","==",currentUser.uid)));
+        myFavorites = new Set(snap.docs.map(d=> `${d.data().targetType}:${d.data().targetId}`));
+      }catch(e){
+        console.error("お気に入りの読み込みに失敗しました", e);
+      }
+    }
+    async function toggleFavorite(targetType, targetId){
+      if(!currentUser) return;
+      const key = `${targetType}:${targetId}`;
+      const docId = `${currentUser.uid}_${targetType}_${targetId}`;
+      if(myFavorites.has(key)){
+        await deleteDoc(doc(db,"favorites",docId));
+        myFavorites.delete(key);
+      }else{
+        await setDoc(doc(db,"favorites",docId), {
+          uid: currentUser.uid, targetType, targetId, createdAt: new Date().toISOString(),
+        });
+        myFavorites.add(key);
+      }
+      if(viewMode === "official") applyFilters(); else applyWishlistFilter();
+    }
     async function markVisited(s){
       if(!currentUser) return;
       try{
@@ -637,6 +675,7 @@
     document.getElementById("f-scene").addEventListener("change", e=>{ state.scene = e.target.value; applyFilters(); });
     document.getElementById("f-keyword").addEventListener("input", e=>{ state.keyword = e.target.value; applyFilters(); });
     document.getElementById("f-missing-location").addEventListener("change", e=>{ state.missingLocation = e.target.checked; applyFilters(); });
+    document.getElementById("f-favorites-only").addEventListener("change", e=>{ state.favoritesOnly = e.target.checked; applyFilters(); });
     document.getElementById("btn-clear").addEventListener("click", ()=>{
       state.pref=""; state.area=""; state.genre=""; state.scene=""; state.keyword=""; state.missingLocation=false;
       document.getElementById("f-missing-location").checked = false;
@@ -651,6 +690,7 @@
         if(state.genre && s.genre !== state.genre) return false;
         if(state.scene && !(s.scenes||[]).includes(state.scene)) return false;
         if(state.missingLocation && (s.lat && s.lng)) return false;
+        if(state.favoritesOnly && !myFavorites.has(`official:${s.id}`)) return false;
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
         return true;
       });
@@ -694,6 +734,7 @@
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
             </div>
+            ${currentUser ? `<button data-role="favorite" aria-label="お気に入り" class="shrink-0 text-xl leading-none">${myFavorites.has(`official:${s.id}`) ? "❤️" : "🤍"}</button>` : ""}
           </div>
           ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${s.features}</p>` : ""}
           <p class="text-xs text-[var(--ink)]/60 mt-2">${s.address || ""}</p>
@@ -722,6 +763,7 @@
         card.querySelector('[data-role="focus"]').addEventListener("click", ()=> focusStore(s));
         card.querySelector('[data-role="toggle-review"]').addEventListener("click", ()=> toggleReviewBox(card, s));
         card.querySelector('[data-role="share"]').addEventListener("click", (e)=>{ e.stopPropagation(); shareStoreCard(s.name, s.id, "official"); });
+        card.querySelector('[data-role="favorite"]')?.addEventListener("click", (e)=>{ e.stopPropagation(); toggleFavorite("official", s.id); });
         card.querySelector('[data-role="retry-geocode"]')?.addEventListener("click", async (e)=>{
           e.stopPropagation();
           const btn = e.target; btn.disabled = true; btn.textContent = "再取得中…";
@@ -765,25 +807,42 @@
             const displayName = contact ? contact.nickname : (r.nickname || "名無しさん");
             const p = document.createElement("p");
             p.className = "text-xs";
-            p.innerHTML = `<span class="font-bold">${displayName}</span>：${r.text}`;
+            const ratingStr = r.rating ? `<span class="text-[var(--kin)]">${starString(r.rating)}</span> ` : "";
+            p.innerHTML = `<span class="font-bold">${displayName}</span>：${ratingStr}${r.text}`;
             box.appendChild(p);
           });
         }
         const formWrap = document.createElement("div");
         if(currentUser){
-          formWrap.className = "flex gap-2 pt-1";
+          formWrap.className = "flex flex-col gap-2 pt-1";
           formWrap.innerHTML = `
-            <input type="text" placeholder="口コミを書く（テキストのみ）" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="review-input">
-            <button class="btn-primary text-xs rounded-full px-3" data-role="review-submit">投稿</button>`;
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-[var(--ink)]/60">評価（任意）：</span>
+              <select data-role="review-rating" class="border border-[var(--line)] rounded px-2 py-1 text-xs">
+                <option value="">評価しない</option>
+                <option value="1">★☆☆☆☆（1）</option>
+                <option value="2">★★☆☆☆（2）</option>
+                <option value="3">★★★☆☆（3）</option>
+                <option value="4">★★★★☆（4）</option>
+                <option value="5">★★★★★（5）</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" placeholder="口コミを書く（テキストのみ）" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" data-role="review-input">
+              <button class="btn-primary text-xs rounded-full px-3" data-role="review-submit">投稿</button>
+            </div>`;
           box.appendChild(formWrap);
           formWrap.querySelector('[data-role="review-submit"]').addEventListener("click", async ()=>{
             const input = formWrap.querySelector('[data-role="review-input"]');
+            const ratingSelect = formWrap.querySelector('[data-role="review-rating"]');
             const text = input.value.trim();
             if(!text) return;
+            const rating = ratingSelect.value ? Number(ratingSelect.value) : null;
             await addDoc(collection(db,"reviews"), {
               restaurantId: store.id, authorUid: currentUser.uid, nickname: currentNickname,
-              text, createdAt: new Date().toISOString(),
+              text, rating, createdAt: new Date().toISOString(),
             });
+            if(rating) await checkLowRatingAlert(store);
             input.value = ""; box.dataset.loaded = ""; toggleReviewBox(card, store); toggleReviewBox(card, store);
           });
         }else{
@@ -794,7 +853,32 @@
       }
     }
 
-    async function requestDelete(store){
+    // 低評価が続いた店をオーナーに知らせる（毎回通知しないよう、しきい値を跨いだ時だけ通知する）
+    // ※ restaurants への書き込みは編集者以上限定のため、フラグは別コレクション（誰でも書ける）で管理する
+    const LOW_RATING_THRESHOLD = 2;   // この値以下の平均で対象
+    const LOW_RATING_MIN_COUNT = 3;   // 評価付き口コミがこの件数以上たまってから判定
+    async function checkLowRatingAlert(store){
+      try{
+        const snap = await getDocs(query(collection(db,"reviews"), where("restaurantId","==",store.id)));
+        const rated = snap.docs.map(d=> d.data()).filter(r=> typeof r.rating === "number");
+        if(rated.length < LOW_RATING_MIN_COUNT) return;
+        const avg = rated.reduce((sum,r)=> sum + r.rating, 0) / rated.length;
+        const isLow = avg <= LOW_RATING_THRESHOLD;
+        const flagRef = doc(db,"lowRatingFlags",store.id);
+        const flagSnap = await getDoc(flagRef).catch(()=>null);
+        const alreadyAlerted = flagSnap?.exists() && flagSnap.data().alerted;
+        if(isLow && !alreadyAlerted){
+          await notifyOwners("low_rating_alert", `評価の低い口コミが続いています：${store.name}`,
+            `直近の口コミ平均が${avg.toFixed(1)}（${rated.length}件中）です。内容を確認してください。`,
+            `index.html?highlight=${store.id}`);
+          await setDoc(flagRef, { alerted: true, updatedAt: new Date().toISOString() });
+        }else if(!isLow && alreadyAlerted){
+          await setDoc(flagRef, { alerted: false, updatedAt: new Date().toISOString() });
+        }
+      }catch(e){ console.error("低評価アラートの判定に失敗しました", e); }
+    }
+
+
       if(!confirm(`「${store.name}」の削除をオーナーに依頼します。よろしいですか？`)) return;
       await updateDoc(doc(db,"restaurants",store.id), {
         deleteRequested: true,
@@ -1140,7 +1224,7 @@
     // 行ってみたい店
     // ---------------------------------------------------------------
     let allWishItems = [];
-    const wlFilter = { mine: "all", status: "all", pref: "", area: "", genre: "", scene: "", keyword: "" };
+    const wlFilter = { mine: "all", status: "all", pref: "", area: "", genre: "", scene: "", keyword: "", favoritesOnly: false };
 
     function setupTabGroup(containerId, key, cb){
       const box = document.getElementById(containerId);
@@ -1186,6 +1270,7 @@
     document.getElementById("wl-f-genre").addEventListener("change", e=>{ wlFilter.genre = e.target.value; applyWishlistFilter(); });
     document.getElementById("wl-f-scene").addEventListener("change", e=>{ wlFilter.scene = e.target.value; applyWishlistFilter(); });
     document.getElementById("wl-f-keyword").addEventListener("input", e=>{ wlFilter.keyword = e.target.value; applyWishlistFilter(); });
+    document.getElementById("wl-f-favorites-only").addEventListener("change", e=>{ wlFilter.favoritesOnly = e.target.checked; applyWishlistFilter(); });
 
     // ---------------------------------------------------------------
     // 連絡先（友達）・グループ・共有先の選択
@@ -1644,6 +1729,7 @@
         if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
         if(wlFilter.mine === "shared" && !(myEmail && (item.sharedWithEmails||[]).includes(myEmail))) return false;
         if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
+        if(wlFilter.favoritesOnly && !myFavorites.has(`wishlist:${item.id}`)) return false;
         if(wlFilter.pref && item.prefecture !== wlFilter.pref) return false;
         if(wlFilter.area && item.area !== wlFilter.area) return false;
         if(wlFilter.genre && item.genre !== wlFilter.genre) return false;
@@ -1715,6 +1801,7 @@
               ${shareLabel}
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
+              ${currentUser ? `<button data-role="favorite" aria-label="お気に入り" class="text-xl leading-none">${myFavorites.has(`wishlist:${item.id}`) ? "❤️" : "🤍"}</button>` : ""}
               <button data-role="share" class="text-xs text-[var(--wish)] underline underline-offset-2">🔗 共有する</button>
               ${canManage ? `<button data-role="edit-wish" class="text-xs text-[var(--wish)] underline underline-offset-2">編集</button>` : ""}
               ${canManage ? `<button data-role="delete" class="text-xs text-[var(--shu)] underline underline-offset-2">削除</button>` : ""}
@@ -1740,6 +1827,7 @@
           `}
         `;
         card.querySelector('[data-role="share"]').addEventListener("click", (e)=>{ e.stopPropagation(); shareStoreCard(item.name, item.id, "wishlist"); });
+        card.querySelector('[data-role="favorite"]')?.addEventListener("click", (e)=>{ e.stopPropagation(); toggleFavorite("wishlist", item.id); });
         if(canManage){
           card.querySelector('[data-role="edit-wish"]').addEventListener("click", ()=> startEditWishItem(item));
           card.querySelector('[data-role="delete"]').addEventListener("click", async ()=>{
