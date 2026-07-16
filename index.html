@@ -878,7 +878,7 @@
       }catch(e){ console.error("低評価アラートの判定に失敗しました", e); }
     }
 
-
+    async function requestDelete(store){
       if(!confirm(`「${store.name}」の削除をオーナーに依頼します。よろしいですか？`)) return;
       await updateDoc(doc(db,"restaurants",store.id), {
         deleteRequested: true,
