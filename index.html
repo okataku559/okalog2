@@ -24,6 +24,9 @@
   .store-card{ transition: box-shadow .15s, transform .15s; }
   .store-card:hover{ box-shadow:0 6px 20px rgba(31,36,33,.10); transform:translateY(-1px); }
   .store-card[data-selected="true"]{ outline:2px solid var(--shu); outline-offset:-2px; }
+  .near-me-chip{ background:#fff; border-color:var(--line); color:rgba(31,36,33,.4); }
+  .near-me-chip:disabled{ cursor:not-allowed; }
+  .near-me-chip[data-active="true"]{ background:var(--shu); border-color:var(--shu); color:#fff; }
   .wish-card{ border-left:4px solid var(--wish) !important; }
   .btn-primary{ background:var(--shu); color:#fff; }
   .btn-primary:hover{ background:var(--shu-dark); }
@@ -168,6 +171,7 @@
         <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
+        <button type="button" id="f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
         <label id="f-favorites-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
           <input type="checkbox" id="f-favorites-only"> ❤ お気に入りのみ
         </label>
@@ -281,25 +285,21 @@
           <label class="flex items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
             <input type="checkbox" id="wl-f-favorites-only"> ❤ お気に入りのみ
           </label>
+          <button type="button" id="wl-f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- メイン -->
-  <main class="flex-1 max-w-7xl w-full mx-auto md:flex md:gap-4 px-4 py-4">
-    <!-- スマホ用：リスト／地図の切り替え（PCでは常に両方表示するので非表示） -->
-    <div class="flex gap-2 mb-3 md:hidden">
-      <button id="view-list-btn" class="flex-1 text-sm rounded-full px-3 py-1.5 border" data-active="true">📋 リスト</button>
-      <button id="view-map-btn" class="flex-1 text-sm rounded-full px-3 py-1.5 border">🗺️ 地図</button>
-    </div>
-    <section id="list-pane" class="md:w-[46%] md:overflow-y-auto md:max-h-[calc(100vh-140px)]">
+  <!-- メイン（地図が上・リストが下の縦並びレイアウト） -->
+  <main class="flex-1 max-w-4xl w-full mx-auto flex flex-col gap-3 px-4 py-4">
+    <section id="map-pane">
+      <div id="map" class="w-full h-[280px] md:h-[420px] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)]"></div>
+    </section>
+    <section id="list-pane">
       <p id="result-count" class="text-xs text-[var(--ink)]/60 mb-2 px-1"></p>
       <div id="list" class="flex flex-col gap-3"></div>
       <div id="empty-state" class="hidden text-center py-16 text-sm text-[var(--ink)]/60"></div>
-    </section>
-    <section id="map-pane" class="hidden md:block md:w-[54%] mt-4 md:mt-0">
-      <div id="map" class="w-full h-[calc(100vh-260px)] md:h-[calc(100vh-140px)] rounded-xl border border-[var(--line)] bg-[var(--paper-dim)] sticky top-[132px]"></div>
     </section>
   </main>
 
@@ -480,32 +480,12 @@
     document.getElementById("tab-wishlist").addEventListener("click", ()=> switchMode("wishlist"));
 
     // ---------------------------------------------------------------
-    // スマホ用：リスト／地図の切り替え表示（PCでは常に両方表示）
     // ---------------------------------------------------------------
-    let mobileSubView = "list"; // 'list' | 'map'
-    function setMobileSubView(v){
-      mobileSubView = v;
-      document.getElementById("view-list-btn").dataset.active = String(v === "list");
-      document.getElementById("view-map-btn").dataset.active = String(v === "map");
-      document.getElementById("list-pane").classList.toggle("hidden", v !== "list");
-      // map-paneは "hidden md:block" が基本形。地図モードのときだけ hidden を外す
-      const mapPane = document.getElementById("map-pane");
-      mapPane.classList.toggle("hidden", v !== "map");
-      mapPane.classList.add("md:block");
-      if(v === "map" && map){ setTimeout(()=> google.maps.event.trigger(map, "resize"), 50); }
-    }
-    document.getElementById("view-list-btn").addEventListener("click", ()=> setMobileSubView("list"));
-    document.getElementById("view-map-btn").addEventListener("click", ()=> setMobileSubView("map"));
-    window.addEventListener("resize", ()=>{
-      if(window.innerWidth >= 768){
-        document.getElementById("list-pane").classList.remove("hidden");
-        document.getElementById("map-pane").classList.remove("hidden");
-      }
-    });
+    // 地図・リストは常に縦並びで両方表示するため、表示切り替えは不要（旧: スマホ用タブ切り替え）
+    // ---------------------------------------------------------------
 
     // 地図のピン・InfoWindowから「詳しく見る」でリスト側の該当カードへジャンプ
     window.__gotoListCard = function(id){
-      setMobileSubView("list");
       requestAnimationFrame(()=>{
         const card = document.querySelector(`.store-card[data-id="${id}"]`);
         if(card){
@@ -553,9 +533,47 @@
     // ---------------------------------------------------------------
     // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, favoritesOnly:false, nearMeOnly:false };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
     let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
+    // ---------------------------------------------------------------
+    // 現在地（ホットペッパー風の「近くの店」機能）
+    // ---------------------------------------------------------------
+    const NEAR_ME_RADIUS_KM = 3;
+    let userLocation = null; // {lat,lng} | null
+    function haversineKm(lat1, lng1, lat2, lng2){
+      const R = 6371;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+    function formatDistance(km){
+      return km < 1 ? `現在地から${Math.round(km * 1000)}m` : `現在地から${km.toFixed(1)}km`;
+    }
+    function requestUserLocation(){
+      if(!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+          userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          state.nearMeOnly = true;
+          updateNearMeChips();
+          renderUserLocationMarker();
+          if(viewMode === "official") applyFilters(); else applyWishlistFilter();
+        },
+        ()=>{
+          userLocation = null; state.nearMeOnly = false; updateNearMeChips();
+        },
+        { timeout: 8000 }
+      );
+    }
+    function updateNearMeChips(){
+      document.querySelectorAll(".near-me-chip").forEach(el=>{
+        el.dataset.active = String(state.nearMeOnly && !!userLocation);
+        el.disabled = !userLocation;
+      });
+    }
 
     async function loadMyVisited(){
       if(!currentUser){ myVisitedIds = new Set(); return; }
@@ -676,6 +694,10 @@
     document.getElementById("f-keyword").addEventListener("input", e=>{ state.keyword = e.target.value; applyFilters(); });
     document.getElementById("f-missing-location").addEventListener("change", e=>{ state.missingLocation = e.target.checked; applyFilters(); });
     document.getElementById("f-favorites-only").addEventListener("change", e=>{ state.favoritesOnly = e.target.checked; applyFilters(); });
+    document.getElementById("f-near-me").addEventListener("click", ()=>{
+      if(!userLocation){ requestUserLocation(); return; }
+      state.nearMeOnly = !state.nearMeOnly; updateNearMeChips(); applyFilters();
+    });
     document.getElementById("btn-clear").addEventListener("click", ()=>{
       state.pref=""; state.area=""; state.genre=""; state.scene=""; state.keyword=""; state.missingLocation=false;
       document.getElementById("f-missing-location").checked = false;
@@ -684,7 +706,8 @@
 
     function applyFilters(){
       const kw = state.keyword.trim().toLowerCase();
-      const filtered = allStores.filter(s=>{
+      const nearActive = state.nearMeOnly && !!userLocation;
+      let filtered = allStores.filter(s=>{
         if(state.pref && s.prefecture !== state.pref) return false;
         if(state.area && s.area !== state.area) return false;
         if(state.genre && s.genre !== state.genre) return false;
@@ -692,10 +715,17 @@
         if(state.missingLocation && (s.lat && s.lng)) return false;
         if(state.favoritesOnly && !myFavorites.has(`official:${s.id}`)) return false;
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
+        if(nearActive){
+          if(!(s.lat && s.lng)) return false;
+          s._distanceKm = haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng);
+          if(s._distanceKm > NEAR_ME_RADIUS_KM) return false;
+        }
         return true;
       });
-      document.getElementById("empty-state").innerHTML =
-        "条件に合うお店が見つかりませんでした。<br>絞り込み条件を減らして、もう一度お試しください。";
+      if(nearActive) filtered = filtered.slice().sort((a,b)=> a._distanceKm - b._distanceKm);
+      document.getElementById("empty-state").innerHTML = nearActive
+        ? "現在地から3km以内に登録されたお店が見つかりませんでした。<br>「📍現在地から3km以内」を外すと全件から探せます。"
+        : "条件に合うお店が見つかりませんでした。<br>絞り込み条件を減らして、もう一度お試しください。";
       renderList(filtered); renderMarkers(filtered, "official");
     }
 
@@ -730,7 +760,7 @@
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
             <div class="flex-1 min-w-0">
               <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
-              <p class="text-xs text-[var(--ink)]/60">${s.area} ／ ${s.genre}</p>
+              <p class="text-xs text-[var(--ink)]/60">${s.area} ／ ${s.genre}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
             </div>
@@ -1271,6 +1301,10 @@
     document.getElementById("wl-f-scene").addEventListener("change", e=>{ wlFilter.scene = e.target.value; applyWishlistFilter(); });
     document.getElementById("wl-f-keyword").addEventListener("input", e=>{ wlFilter.keyword = e.target.value; applyWishlistFilter(); });
     document.getElementById("wl-f-favorites-only").addEventListener("change", e=>{ wlFilter.favoritesOnly = e.target.checked; applyWishlistFilter(); });
+    document.getElementById("wl-f-near-me").addEventListener("click", ()=>{
+      if(!userLocation){ requestUserLocation(); return; }
+      state.nearMeOnly = !state.nearMeOnly; updateNearMeChips(); applyWishlistFilter();
+    });
 
     // ---------------------------------------------------------------
     // 連絡先（友達）・グループ・共有先の選択
@@ -1725,7 +1759,8 @@
       if(viewMode !== "wishlist") return;
       const myEmail = currentUser?.email?.toLowerCase();
       const kw = wlFilter.keyword.trim().toLowerCase();
-      const filtered = allWishItems.filter(item=>{
+      const nearActive = state.nearMeOnly && !!userLocation;
+      let filtered = allWishItems.filter(item=>{
         if(wlFilter.mine === "mine" && !(currentUser && item.addedBy === currentUser.uid)) return false;
         if(wlFilter.mine === "shared" && !(myEmail && (item.sharedWithEmails||[]).includes(myEmail))) return false;
         if(wlFilter.status !== "all" && item.status !== wlFilter.status) return false;
@@ -1735,9 +1770,17 @@
         if(wlFilter.genre && item.genre !== wlFilter.genre) return false;
         if(wlFilter.scene && !(item.scenes||[]).includes(wlFilter.scene)) return false;
         if(kw && !(`${item.name} ${item.memo||""}`).toLowerCase().includes(kw)) return false;
+        if(nearActive){
+          if(!(item.lat && item.lng)) return false;
+          item._distanceKm = haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng);
+          if(item._distanceKm > NEAR_ME_RADIUS_KM) return false;
+        }
         return true;
       });
-      document.getElementById("empty-state").textContent = "条件に合う登録がありません。";
+      if(nearActive) filtered = filtered.slice().sort((a,b)=> a._distanceKm - b._distanceKm);
+      document.getElementById("empty-state").textContent = nearActive
+        ? "現在地から3km以内に登録がありません。「📍現在地から3km以内」を外すと全件から探せます。"
+        : "条件に合う登録がありません。";
       renderWishlistList(filtered);
       renderMarkers(filtered, "wishlist");
     }
@@ -1786,7 +1829,7 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}${hasAddressButNoLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
-              ${(item.area || item.genre) ? `<p class="text-xs text-[var(--ink)]/60">${item.area || ""}${item.area && item.genre ? " ／ " : ""}${item.genre || ""}</p>` : ""}
+              ${(item.area || item.genre || (userLocation && item.lat && item.lng)) ? `<p class="text-xs text-[var(--ink)]/60">${item.area || ""}${item.area && item.genre ? " ／ " : ""}${item.genre || ""}${(userLocation && item.lat && item.lng) ? `${(item.area || item.genre) ? " ／ " : ""}<span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng))}</span>` : ""}</p>` : ""}
               ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
               ${(item.scenes||[]).length ? `<div class="flex flex-wrap gap-1 mt-1">${item.scenes.map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>` : ""}
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
@@ -1907,7 +1950,7 @@
           infoWindow.open(map, marker);
         }
       }
-      if(window.innerWidth < 768) setMobileSubView("map");
+      if(window.innerWidth < 768) document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
     }
 
     // ---------------------------------------------------------------
@@ -1923,13 +1966,24 @@
           infoWindow.open(map, marker);
         }
       }
-      if(window.innerWidth < 768) setMobileSubView("map");
+      if(window.innerWidth < 768) document.getElementById("map-pane").scrollIntoView({behavior:"smooth", block:"start"});
       saveState();
+    }
+    let userMarker = null;
+    function renderUserLocationMarker(){
+      if(!map || !userLocation || !window.google) return;
+      if(userMarker) userMarker.setMap(null);
+      userMarker = new google.maps.Marker({
+        position: userLocation, map, title: "現在地", zIndex: 999,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: "#2B5DA6", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2 },
+      });
+      if(state.nearMeOnly){ map.setCenter(userLocation); map.setZoom(14); }
     }
     window.initMap = function(){
       map = new google.maps.Map(document.getElementById("map"), { center:{lat:34.6937,lng:135.5023}, zoom:11, mapId:"OKALOG_MAP" });
       infoWindow = new google.maps.InfoWindow();
       geocoder = new google.maps.Geocoder();
+      renderUserLocationMarker();
       loadStoresAndRefresh(true);
     };
     // type: "official"（赤・標準ピン）または "wishlist"（青ピン）で色分け
@@ -1959,6 +2013,7 @@
 
     fillStaticFormOptions();
     fillWishlistFormOptions();
+    requestUserLocation();
     const mapScript = document.createElement("script");
     mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
     mapScript.async = true;
