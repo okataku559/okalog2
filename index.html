@@ -63,7 +63,7 @@
         <a href="index.html"><img src="logo.png" alt="おかログ｜本当に行って良かったお店だけ。" class="h-14 md:h-16 w-auto rounded-lg"></a>
         <p class="text-xs md:text-sm text-[var(--paper-dim)] opacity-80">本当に行って良かったお店だけ。。。。</p>
       </div>
-      <div class="flex items-center gap-3 text-xs md:text-sm">
+      <div class="flex items-center gap-3 text-xs md:text-sm ml-auto">
         <button id="btn-share-app" class="flex items-center gap-1 bg-[var(--wish)]/20 border border-[var(--wish)] text-[var(--paper)] rounded-full px-3 py-1 hover:bg-[var(--wish)]/30 transition-colors">
           <span aria-hidden="true">🔗</span> 紹介
         </button>
@@ -174,6 +174,13 @@
                class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
         <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
         <button type="button" id="f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
+        <select id="f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
+          <option value="0.5">0.5km</option>
+          <option value="1">1km</option>
+          <option value="3" selected>3km</option>
+          <option value="5">5km</option>
+          <option value="10">10km</option>
+        </select>
         <label id="f-favorites-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
           <input type="checkbox" id="f-favorites-only"> ❤ お気に入りのみ
         </label>
@@ -288,6 +295,13 @@
             <input type="checkbox" id="wl-f-favorites-only"> ❤ お気に入りのみ
           </label>
           <button type="button" id="wl-f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
+          <select id="wl-f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
+            <option value="0.5">0.5km</option>
+            <option value="1">1km</option>
+            <option value="3" selected>3km</option>
+            <option value="5">5km</option>
+            <option value="10">10km</option>
+          </select>
         </div>
       </div>
     </div>
@@ -535,13 +549,12 @@
     // ---------------------------------------------------------------
     // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, favoritesOnly:false, nearMeOnly:false };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, favoritesOnly:false, nearMeOnly:false, nearMeRadiusKm:3 };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
     let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
     // ---------------------------------------------------------------
     // 現在地（ホットペッパー風の「近くの店」機能）
     // ---------------------------------------------------------------
-    const NEAR_ME_RADIUS_KM = 3;
     let userLocation = null; // {lat,lng} | null
     function haversineKm(lat1, lng1, lat2, lng2){
       const R = 6371;
@@ -574,7 +587,9 @@
       document.querySelectorAll(".near-me-chip").forEach(el=>{
         el.dataset.active = String(state.nearMeOnly && !!userLocation);
         el.disabled = !userLocation;
+        el.textContent = `📍 現在地から${state.nearMeRadiusKm}km以内`;
       });
+      document.querySelectorAll(".near-me-radius").forEach(el=>{ el.value = String(state.nearMeRadiusKm); });
     }
 
     async function loadMyVisited(){
@@ -700,6 +715,10 @@
       if(!userLocation){ requestUserLocation(); return; }
       state.nearMeOnly = !state.nearMeOnly; updateNearMeChips(); applyFilters();
     });
+    document.getElementById("f-near-me-radius").addEventListener("change", e=>{
+      state.nearMeRadiusKm = Number(e.target.value); updateNearMeChips();
+      if(state.nearMeOnly) applyFilters();
+    });
     document.getElementById("btn-clear").addEventListener("click", ()=>{
       state.pref=""; state.area=""; state.genre=""; state.scene=""; state.keyword=""; state.missingLocation=false;
       document.getElementById("f-missing-location").checked = false;
@@ -720,7 +739,7 @@
         if(nearActive){
           if(!(s.lat && s.lng)) return false;
           s._distanceKm = haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng);
-          if(s._distanceKm > NEAR_ME_RADIUS_KM) return false;
+          if(s._distanceKm > state.nearMeRadiusKm) return false;
         }
         return true;
       });
@@ -1307,6 +1326,10 @@
       if(!userLocation){ requestUserLocation(); return; }
       state.nearMeOnly = !state.nearMeOnly; updateNearMeChips(); applyWishlistFilter();
     });
+    document.getElementById("wl-f-near-me-radius").addEventListener("change", e=>{
+      state.nearMeRadiusKm = Number(e.target.value); updateNearMeChips();
+      if(state.nearMeOnly) applyWishlistFilter();
+    });
 
     // ---------------------------------------------------------------
     // 連絡先（友達）・グループ・共有先の選択
@@ -1775,7 +1798,7 @@
         if(nearActive){
           if(!(item.lat && item.lng)) return false;
           item._distanceKm = haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng);
-          if(item._distanceKm > NEAR_ME_RADIUS_KM) return false;
+          if(item._distanceKm > state.nearMeRadiusKm) return false;
         }
         return true;
       });
