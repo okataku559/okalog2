@@ -187,6 +187,9 @@
         <label id="f-missing-location-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
           <input type="checkbox" id="f-missing-location"> ⚠ 地図位置未設定のみ
         </label>
+        <label id="f-missing-data-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
+          <input type="checkbox" id="f-missing-data"> ⚠ データ不備のみ
+        </label>
       </div>
     </div>
   </section>
@@ -440,6 +443,8 @@
         formSection.classList.toggle("hidden", !(currentRole === "owner" || currentRole === "editor"));
         document.getElementById("f-missing-location-row").classList.toggle("hidden", currentRole !== "owner");
         document.getElementById("f-missing-location-row").classList.toggle("flex", currentRole === "owner");
+        document.getElementById("f-missing-data-row").classList.toggle("hidden", currentRole !== "owner");
+        document.getElementById("f-missing-data-row").classList.toggle("flex", currentRole === "owner");
         document.getElementById("f-favorites-row").classList.remove("hidden");
         document.getElementById("f-favorites-row").classList.add("flex");
       }else{
@@ -447,6 +452,7 @@
         document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
         formSection.classList.add("hidden");
         document.getElementById("f-missing-location-row").classList.add("hidden");
+        document.getElementById("f-missing-data-row").classList.add("hidden");
         document.getElementById("f-favorites-row").classList.add("hidden");
       }
       renderWishlistAuthState();
@@ -549,7 +555,7 @@
     // ---------------------------------------------------------------
     // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, favoritesOnly:false, nearMeOnly:false, nearMeRadiusKm:3 };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, missingData:false, favoritesOnly:false, nearMeOnly:false, nearMeRadiusKm:3 };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
     let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
     // ---------------------------------------------------------------
@@ -572,7 +578,6 @@
       navigator.geolocation.getCurrentPosition(
         (pos)=>{
           userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          state.nearMeOnly = true;
           updateNearMeChips();
           renderUserLocationMarker();
           if(viewMode === "official") applyFilters(); else applyWishlistFilter();
@@ -710,6 +715,7 @@
     document.getElementById("f-scene").addEventListener("change", e=>{ state.scene = e.target.value; applyFilters(); });
     document.getElementById("f-keyword").addEventListener("input", e=>{ state.keyword = e.target.value; applyFilters(); });
     document.getElementById("f-missing-location").addEventListener("change", e=>{ state.missingLocation = e.target.checked; applyFilters(); });
+    document.getElementById("f-missing-data").addEventListener("change", e=>{ state.missingData = e.target.checked; applyFilters(); });
     document.getElementById("f-favorites-only").addEventListener("change", e=>{ state.favoritesOnly = e.target.checked; applyFilters(); });
     document.getElementById("f-near-me").addEventListener("click", ()=>{
       if(!userLocation){ requestUserLocation(); return; }
@@ -725,6 +731,16 @@
       renderFilterBar(); applyFilters();
     });
 
+    function getMissingFields(s){
+      const missing = [];
+      if(!s.genre) missing.push("ジャンル");
+      if(!s.prefecture) missing.push("都道府県");
+      if(!s.area) missing.push("エリア");
+      if(!s.address) missing.push("住所");
+      const storeLinks = normalizeLinks(s, "url", "外部リンク");
+      if(storeLinks.some(l=> !l.label || l.label === "外部リンク" || l.label === "参考リンク")) missing.push("リンク種類");
+      return missing;
+    }
     function applyFilters(){
       const kw = state.keyword.trim().toLowerCase();
       const nearActive = state.nearMeOnly && !!userLocation;
@@ -734,6 +750,7 @@
         if(state.genre && s.genre !== state.genre) return false;
         if(state.scene && !(s.scenes||[]).includes(state.scene)) return false;
         if(state.missingLocation && (s.lat && s.lng)) return false;
+        if(state.missingData && getMissingFields(s).length === 0) return false;
         if(state.favoritesOnly && !myFavorites.has(`official:${s.id}`)) return false;
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
         if(nearActive){
@@ -774,14 +791,16 @@
         const mapQuery = s.address ? `${s.name} ${s.address}` : (s.lat && s.lng ? `${s.lat},${s.lng}` : s.name);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         const hasLocation = !!(s.lat && s.lng);
+        const missingFields = getMissingFields(s);
+        const hasMissingData = missingFields.length > 0;
         const card = document.createElement("article");
         card.className = "store-card bg-white border border-[var(--line)] rounded-xl p-3";
         card.dataset.id = s.id;
         card.innerHTML = `
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
             <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
-              <p class="text-xs text-[var(--ink)]/60">${s.area} ／ ${s.genre}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
+              <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}</h3>
+              <p class="text-xs text-[var(--ink)]/60">${s.area || "エリア未設定"} ／ ${s.genre || "ジャンル未設定"}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
             </div>
@@ -956,6 +975,12 @@
     // お店 追加・編集モーダル（実際に行って良かった店）
     // ---------------------------------------------------------------
     const sfDetails = document.getElementById("sf-form-details");
+    // バグ修正：昇格フォームを保存せず手動で閉じた後、無関係な新規登録をしても
+    // 昇格対象の「行ってみたい店」データを誤って削除しないよう、
+    // ユーザーが手動でこの見出しをクリックして開いたときは必ずフォームを空の状態にリセットする
+    sfDetails.querySelector("summary").addEventListener("click", (e)=>{
+      if(!sfDetails.open){ e.preventDefault(); resetStoreForm(); sfDetails.open = true; }
+    });
     // ---------------------------------------------------------------
     // 複数リンク（食べログ／ホットペッパー／Instagram等）の共通ヘルパー
     // ---------------------------------------------------------------
