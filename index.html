@@ -221,10 +221,10 @@
           <p id="wl-autofill-status" class="hidden text-xs text-[var(--kin)] bg-[var(--paper-dim)] rounded p-2"></p>
           <div class="grid grid-cols-2 gap-2">
             <label class="block text-xs font-bold">都道府県 <span class="text-[var(--ink)]/40 font-normal">任意・住所から自動入力</span>
-              <select id="wl-pref" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+              <input type="text" id="wl-pref" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
             </label>
             <label class="block text-xs font-bold">エリア <span class="text-[var(--ink)]/40 font-normal">任意・住所から自動入力</span>
-              <select id="wl-area" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+              <input type="text" id="wl-area" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
             </label>
           </div>
           <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
@@ -334,7 +334,7 @@
       query, where, orderBy, limit, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { GENRES, SCENES, AREA_TREE } from "./constants.js";
+    import { GENRES, SCENES, REGIONS } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, EMAILJS_SHARE_TEMPLATE_ID
@@ -675,10 +675,26 @@
     }
     window.addEventListener("pagehide", saveState);
 
+    // 都道府県プルダウンを地方ごとにグループ化して作る共通ヘルパー
+    // （constants.jsの固定リストではなく、実際に登録されているデータから自動生成する）
+    function buildGroupedPrefOptions(prefsInUse, placeholder){
+      let html = `<option value="">${placeholder}</option>`;
+      const used = new Set(prefsInUse);
+      REGIONS.forEach(region=>{
+        const here = region.prefectures.filter(p=> used.has(p));
+        if(!here.length) return;
+        html += `<optgroup label="${region.name}">` + here.map(p=>`<option value="${p}">${p}</option>`).join("") + `</optgroup>`;
+      });
+      // 万一REGIONSに無い都道府県名（表記ゆれ等）が登録されていた場合も、その他として拾っておく
+      const known = new Set(REGIONS.flatMap(r=> r.prefectures));
+      const others = [...used].filter(p=> !known.has(p));
+      if(others.length) html += `<optgroup label="その他">` + others.map(p=>`<option value="${p}">${p}</option>`).join("") + `</optgroup>`;
+      return html;
+    }
     function fillPrefSelect(){
       const sel = document.getElementById("f-pref");
-      sel.innerHTML = `<option value="">都道府県（すべて）</option>` +
-        Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
+      const prefsInUse = allStores.map(s=> s.prefecture).filter(Boolean);
+      sel.innerHTML = buildGroupedPrefOptions(prefsInUse, "都道府県（すべて）");
       sel.value = state.pref;
     }
     function fillAreaSelect(){
@@ -688,7 +704,8 @@
         sel.disabled = true; sel.value = "";
         return;
       }
-      const areas = [...new Set(Object.values(AREA_TREE[state.pref]).flat())];
+      // 登録済みデータから実際に存在するエリアだけを一覧にする（AREA_TREEに無い新しいエリアも自動で拾える）
+      const areas = [...new Set(allStores.filter(s=> s.prefecture === state.pref).map(s=> s.area).filter(Boolean))].sort();
       sel.innerHTML = `<option value="">エリア（すべて）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
       sel.disabled = false; sel.value = state.area;
     }
@@ -1096,26 +1113,11 @@
       const sceneBox = document.getElementById("sf-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
     }
-    function fillWishlistFormAreaSelect(){
-      const pref = document.getElementById("wl-pref").value;
-      const areaSel = document.getElementById("wl-area");
-      if(!pref){
-        areaSel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
-        areaSel.disabled = true;
-      }else{
-        const areas = [...new Set(Object.values(AREA_TREE[pref]).flat())];
-        areaSel.innerHTML = `<option value="">エリア（任意）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
-        areaSel.disabled = false;
-      }
-    }
     function fillWishlistFormOptions(){
       document.getElementById("wl-genre").innerHTML = `<option value="">ジャンル（任意）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
-      document.getElementById("wl-pref").innerHTML = `<option value="">都道府県（任意）</option>` + Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
       const sceneBox = document.getElementById("wl-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
-      fillWishlistFormAreaSelect();
     }
-    document.getElementById("wl-pref").addEventListener("change", fillWishlistFormAreaSelect);
     // 「行ってみたい店」から昇格して登録するとき、保存成功後に元データを削除するためのID
     let promotingWishId = null;
     function openStoreModal(store, prefill){
@@ -1240,19 +1242,14 @@
       if(!address){ statusEl.classList.add("hidden"); return; }
       statusEl.textContent = "住所から地域情報を確認しています…"; statusEl.classList.remove("hidden");
       const geo = await geocodeAddress(address);
-      if(!geo || !geo.prefecture || !AREA_TREE[geo.prefecture]){
-        statusEl.textContent = "⚠ 住所から地域情報を自動入力できませんでした。お手数ですが手動で選択してください。";
+      if(!geo || !geo.prefecture){
+        statusEl.textContent = "⚠ 住所から地域情報を自動入力できませんでした。お手数ですが手動で入力してください。";
         return;
       }
       const area = guessArea(geo);
       document.getElementById("wl-pref").value = geo.prefecture;
-      fillWishlistFormAreaSelect();
-      const areaSel = document.getElementById("wl-area");
-      const hasOption = [...areaSel.options].some(o=> o.value === area);
-      if(hasOption) areaSel.value = area;
-      statusEl.textContent = hasOption
-        ? `✓ 自動入力しました：${geo.prefecture} ／ ${area}`
-        : `✓ 都道府県は自動入力しました：${geo.prefecture}（エリアは一覧になかったため手動で選択してください）`;
+      document.getElementById("wl-area").value = area || "";
+      statusEl.textContent = `✓ 自動入力しました：${geo.prefecture} ／ ${area || "（エリア不明・確認してください）"}`;
     }
 
     document.getElementById("store-form").addEventListener("submit", async (e)=>{
@@ -1319,15 +1316,15 @@
     // 絞り込み用セレクト（都道府県・エリア・ジャンル・シーン）
     function fillWishlistFilterSelects(){
       const prefSel = document.getElementById("wl-f-pref");
-      prefSel.innerHTML = `<option value="">都道府県（すべて）</option>` +
-        Object.keys(AREA_TREE).map(p=>`<option value="${p}">${p}</option>`).join("");
+      const prefsInUse = allWishItems.map(i=> i.prefecture).filter(Boolean);
+      prefSel.innerHTML = buildGroupedPrefOptions(prefsInUse, "都道府県（すべて）");
       prefSel.value = wlFilter.pref;
       const areaSel = document.getElementById("wl-f-area");
       if(!wlFilter.pref){
         areaSel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
         areaSel.disabled = true;
       }else{
-        const areas = [...new Set(Object.values(AREA_TREE[wlFilter.pref]).flat())];
+        const areas = [...new Set(allWishItems.filter(i=> i.prefecture === wlFilter.pref).map(i=> i.area).filter(Boolean))].sort();
         areaSel.innerHTML = `<option value="">エリア（すべて）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
         areaSel.disabled = false; areaSel.value = wlFilter.area;
       }
@@ -1646,7 +1643,7 @@
       document.getElementById("wl-memo").value = "";
       document.getElementById("wl-genre").value = "";
       document.getElementById("wl-pref").value = "";
-      fillWishlistFormAreaSelect();
+      document.getElementById("wl-area").value = "";
       document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = false);
       document.getElementById("wl-address").value = "";
       const wlLinksBox = document.getElementById("wl-links");
@@ -1681,7 +1678,6 @@
       document.getElementById("wl-memo").value = item.memo || "";
       document.getElementById("wl-genre").value = item.genre || "";
       document.getElementById("wl-pref").value = item.prefecture || "";
-      fillWishlistFormAreaSelect();
       document.getElementById("wl-area").value = item.area || "";
       const selectedWlScenes = new Set(item.scenes || []);
       document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = selectedWlScenes.has(cb.value));
@@ -1738,8 +1734,8 @@
       const editId = document.getElementById("wl-edit-id").value;
       const memo = document.getElementById("wl-memo").value.trim();
       const genre = document.getElementById("wl-genre").value;
-      const prefecture = document.getElementById("wl-pref").value;
-      const area = document.getElementById("wl-area").value;
+      const prefecture = document.getElementById("wl-pref").value.trim();
+      const area = document.getElementById("wl-area").value.trim();
       const scenes = [...document.querySelectorAll('#wl-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
       const address = document.getElementById("wl-address").value.trim();
       const links = collectLinks(document.getElementById("wl-links"));
@@ -1788,6 +1784,7 @@
       try{
         const snap = await getDocs(query(collection(db,"wishlist"), orderBy("createdAt","desc")));
         allWishItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        fillWishlistFilterSelects();
         applyWishlistFilter();
         if(pendingWishEditId){
           const target = allWishItems.find(w=> w.id === pendingWishEditId);
@@ -2053,7 +2050,7 @@
     async function loadStoresAndRefresh(first){
       const snap = await getDocs(collection(db,"restaurants"));
       allStores = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      if(first){ restoreState(); renderFilterBar(); }
+      if(first){ restoreState(); renderFilterBar(); } else { fillPrefSelect(); fillAreaSelect(); }
       if(viewMode === "official") applyFilters();
       if(pendingHighlightId && allStores.some(s=> s.id === pendingHighlightId)){
         window.__gotoListCard(pendingHighlightId);
