@@ -3,11 +3,14 @@
 // 「おかログ」共通のFirebase初期化ファイル。
 // index.html（検索画面）と import.html（データ取込ツール）の両方から読み込みます。
 //
-// ★このファイルは編集不要です。このままGitHubにアップロードしてください。
+// 本番/検証(staging)の自動切り替え：
+// アクセスしているURLのホスト名を見て、Firebase設定を自動的に切り替えます。
+//   - 本番URL（okalog2.vercel.app、独自ドメインなど）→ 本番Firebase（okalog2）
+//   - ホスト名に "staging" を含む、または localhost / 127.0.0.1 → 検証Firebase（okalog2-staging）
 // ============================================================================
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyCASSY00FdrBv5RhRws6X-jYdQeyVg4FSo",
+const PROD_CONFIG = {
+  apiKey: "AIzaSyCA•••••••••••••••••••••••••••••••",
   authDomain: "okalog2.firebaseapp.com",
   projectId: "okalog2",
   storageBucket: "okalog2.firebasestorage.app",
@@ -16,7 +19,33 @@ export const firebaseConfig = {
   measurementId: "G-B0MQ58E1JY",
 };
 
-export const GOOGLE_MAPS_API_KEY = "AIzaSyCnVGWGUIUMgqOw2UbjeAWKfJRsoOkgIkw";
+const STAGING_CONFIG = {
+  apiKey: "AIzaSyAz•••••••••••••••••••••••••••••••",
+  authDomain: "okalog2-staging.firebaseapp.com",
+  projectId: "okalog2-staging",
+  storageBucket: "okalog2-staging.firebasestorage.app",
+  messagingSenderId: "900437272341",
+  appId: "1:900437272341:web:6c25f1a31e9df32e02eb1c",
+};
+
+function isStagingHost(hostname) {
+  return (
+    hostname.includes("staging") ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1"
+  );
+}
+
+const isStaging =
+  typeof window !== "undefined" && isStagingHost(window.location.hostname);
+
+export const firebaseConfig = isStaging ? STAGING_CONFIG : PROD_CONFIG;
+
+console.log(
+  `[おかログ] Firebase環境: ${isStaging ? "検証(staging)" : "本番(production)"} (projectId: ${firebaseConfig.projectId})`
+);
+
+export const GOOGLE_MAPS_API_KEY = "AIzaSyCn•••••••••••••••••••••••••••••••";
 
 // 削除依頼メール通知用（EmailJS）
 export const EMAILJS_PUBLIC_KEY = "atB1vP1gEA7QY80dx";
