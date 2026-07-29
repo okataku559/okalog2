@@ -436,7 +436,7 @@
       if(currentUser){
         box.innerHTML = `
           <a href="mypage.html" class="underline underline-offset-2">マイページ</a>
-          <span class="opacity-80">${currentNickname}さん（${roleLabel(currentRole)}）</span>
+          <span class="opacity-80">${escapeHtml(currentNickname)}さん（${roleLabel(currentRole)}）</span>
           ${currentRole === "member" ? `<button id="btn-request-editor" class="underline underline-offset-2">編集権限を申請</button>` : ""}
           <button id="btn-nickname" class="underline underline-offset-2">表示名を変更</button>
           <button id="btn-logout" class="underline underline-offset-2">ログアウト</button>`;
@@ -830,15 +830,15 @@
         card.innerHTML = `
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
             <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}${dupCandidate ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ 重複候補あり（${dupCandidate.name}と近い）</span>` : ''}</h3>
-              <p class="text-xs text-[var(--ink)]/60">${s.area || "エリア未設定"} ／ ${s.genre || "ジャンル未設定"}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
+              <h3 class="font-bold text-base truncate">${escapeHtml(s.name)}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}${dupCandidate ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ 重複候補あり（${escapeHtml(dupCandidate.name)}と近い）</span>` : ''}</h3>
+              <p class="text-xs text-[var(--ink)]/60">${escapeHtml(s.area) || "エリア未設定"} ／ ${escapeHtml(s.genre) || "ジャンル未設定"}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
             </div>
             ${currentUser ? `<button data-role="favorite" aria-label="お気に入り" class="shrink-0 text-xl leading-none">${myFavorites.has(`official:${s.id}`) ? "❤️" : "🤍"}</button>` : ""}
           </div>
-          ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${s.features}</p>` : ""}
-          <p class="text-xs text-[var(--ink)]/60 mt-2">${s.address || ""}</p>
+          ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${escapeHtml(s.features)}</p>` : ""}
+          <p class="text-xs text-[var(--ink)]/60 mt-2">${escapeHtml(s.address)}</p>
           <div class="flex flex-wrap gap-3 mt-1 text-xs items-center">
             ${hasLocation
               ? `<a href="${mapUrl}" target="_blank" rel="noopener" class="underline underline-offset-2 text-[var(--shu)]" onclick="event.stopPropagation()">Googleマップで見る</a>`
@@ -909,7 +909,7 @@
             const p = document.createElement("p");
             p.className = "text-xs";
             const ratingStr = r.rating ? `<span class="text-[var(--kin)]">${starString(r.rating)}</span> ` : "";
-            p.innerHTML = `<span class="font-bold">${displayName}</span>：${ratingStr}${r.text}`;
+            p.innerHTML = `<span class="font-bold">${escapeHtml(displayName)}</span>：${ratingStr}${escapeHtml(r.text)}`;
             box.appendChild(p);
           });
         }
@@ -1066,6 +1066,13 @@
     // 同じ店名の重複チェック（実際に行って良かった店・行ってみたい店の両方を横断）
     // 完全ブロックはせず、警告のみ表示する（同名の別支店の可能性があるため）
     // ---------------------------------------------------------------
+    // ユーザーが入力した文字列をHTMLとして安全に表示するためのエスケープ関数
+    // （XSS対策：innerHTMLで表示する箇所は必ずこれを通す）
+    function escapeHtml(str){
+      return String(str ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
     function normalizeName(name){
       return (name||"").trim().toLowerCase().replace(/\s+/g,"");
     }
@@ -1446,8 +1453,8 @@
         const when = n.createdAt ? new Date(n.createdAt).toLocaleString("ja-JP") : "";
         row.innerHTML = `
           <div class="flex-1 min-w-0 cursor-pointer" data-role="body">
-            <p class="font-bold">${n.read ? "" : "🔵 "}${n.title}</p>
-            ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${n.body}</p>` : ""}
+            <p class="font-bold">${n.read ? "" : "🔵 "}${escapeHtml(n.title)}</p>
+            ${n.body ? `<p class="text-[var(--ink)]/70 mt-0.5">${escapeHtml(n.body)}</p>` : ""}
             <p class="text-[10px] text-[var(--ink)]/40 mt-0.5">${when}</p>
           </div>
           <button type="button" data-role="delete" class="shrink-0 text-[var(--ink)]/30 hover:text-[var(--shu)] px-1" title="この通知を削除">🗑</button>
@@ -1491,7 +1498,7 @@
       [...wlShareEmails].forEach(email=>{
         const chip = document.createElement("span");
         chip.className = "text-xs bg-[var(--wish)] text-white rounded-full pl-3 pr-1 py-1 flex items-center gap-1";
-        chip.innerHTML = `${nicknameForEmail(email)} <button type="button" class="font-bold px-1">✕</button>`;
+        chip.innerHTML = `${escapeHtml(nicknameForEmail(email))} <button type="button" class="font-bold px-1">✕</button>`;
         chip.querySelector("button").addEventListener("click", ()=>{
           wlShareEmails.delete(email);
           renderShareChips(); renderContactsList();
@@ -1860,11 +1867,11 @@
       });
       await Promise.all([...uidsToResolve].map(uid=> getEmailForUid(uid)));
       function friendlyNameForUid(uid, fallback){
-        if(!uid) return fallback;
+        if(!uid) return escapeHtml(fallback);
         const email = uidEmailCache[uid];
-        if(!email) return fallback;
+        if(!email) return escapeHtml(fallback);
         const contact = myContacts.find(c=> c.email.toLowerCase() === email);
-        return contact ? contact.nickname : fallback;
+        return escapeHtml(contact ? contact.nickname : fallback);
       }
 
       items.forEach(item=>{
@@ -1881,7 +1888,7 @@
         const myEmail = currentUser?.email?.toLowerCase();
         const sharedWithMe = myEmail && (item.sharedWithEmails||[]).includes(myEmail) && !isMine;
         const shareLabel = (isMine || currentRole==="owner") && item.sharedWith?.length
-          ? `<p class="text-[10px] text-[var(--wish)] mt-1">共有先：${item.sharedWith.map(s=>nicknameForEmail(s.email)||s.nickname||s.email).join("、")}</p>` : "";
+          ? `<p class="text-[10px] text-[var(--wish)] mt-1">共有先：${item.sharedWith.map(s=>escapeHtml(nicknameForEmail(s.email)||s.nickname||s.email)).join("、")}</p>` : "";
 
         const card = document.createElement("article");
         card.className = "store-card wish-card bg-white border border-[var(--line)] rounded-xl p-3";
@@ -1889,11 +1896,11 @@
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-              <h3 class="font-bold text-sm truncate">${item.name}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}${hasAddressButNoLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
-              ${(item.area || item.genre || (userLocation && item.lat && item.lng)) ? `<p class="text-xs text-[var(--ink)]/60">${item.area || ""}${item.area && item.genre ? " ／ " : ""}${item.genre || ""}${(userLocation && item.lat && item.lng) ? `${(item.area || item.genre) ? " ／ " : ""}<span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng))}</span>` : ""}</p>` : ""}
-              ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${item.memo}</p>` : ""}
+              <h3 class="font-bold text-sm truncate">${escapeHtml(item.name)}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}${hasAddressButNoLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
+              ${(item.area || item.genre || (userLocation && item.lat && item.lng)) ? `<p class="text-xs text-[var(--ink)]/60">${escapeHtml(item.area)}${item.area && item.genre ? " ／ " : ""}${escapeHtml(item.genre)}${(userLocation && item.lat && item.lng) ? `${(item.area || item.genre) ? " ／ " : ""}<span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng))}</span>` : ""}</p>` : ""}
+              ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${escapeHtml(item.memo)}</p>` : ""}
               ${(item.scenes||[]).length ? `<div class="flex flex-wrap gap-1 mt-1">${item.scenes.map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>` : ""}
-              ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${item.address}</p>` : ""}
+              ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${escapeHtml(item.address)}</p>` : ""}
               <div class="flex flex-wrap gap-3 mt-1 items-center">
                 ${hasLocation ? `<a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2">Googleマップで見る</a>` : ""}
                 ${hasAddressButNoLocation ? `<span class="text-xs text-[var(--shu)]">⚠ 地図に位置が表示できません</span>
@@ -1913,7 +1920,7 @@
           </div>
           ${visited ? `
             <div class="mt-2 pt-2 border-t border-[var(--line)] text-xs space-y-2">
-              <div><span class="font-bold">${impressionAuthorName}さんの感想：</span>${item.impression}</div>
+              <div><span class="font-bold">${impressionAuthorName}さんの感想：</span>${escapeHtml(item.impression)}</div>
               ${(currentRole === "owner" || currentRole === "editor") ? `
                 <button data-role="promote" class="btn-primary rounded-full px-3 py-1 text-xs">実際に行って良かった店として登録する</button>
               ` : ""}
