@@ -753,7 +753,6 @@
       document.getElementById("f-missing-location").checked = false;
       renderFilterBar(); applyFilters();
     });
-
     function getMissingFields(s){
       const missing = [];
       if(!s.genre) missing.push("ジャンル");
@@ -761,8 +760,15 @@
       if(!s.area) missing.push("エリア");
       if(!s.address) missing.push("住所");
       const storeLinks = normalizeLinks(s, "url", "外部リンク");
-      if(storeLinks.some(l=> !l.label || l.label === "外部リンク" || l.label === "参考リンク")) missing.push("リンク種類");
+            if(storeLinks.some(l=> !l.label || l.label === "外部リンク" || l.label === "参考リンク")) missing.push("リンク種類");
       return missing;
+    }
+        function findDuplicateCandidate(s){
+      if(!s.lat || !s.lng) return null;
+      return allStores.find(other=>
+        other.id !== s.id && other.lat && other.lng &&
+        distanceMeters(s.lat, s.lng, other.lat, other.lng) <= DUPLICATE_DISTANCE_METERS
+      ) || null;
     }
     function applyFilters(){
       const kw = state.keyword.trim().toLowerCase();
