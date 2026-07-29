@@ -1085,6 +1085,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     const DUPLICATE_DISTANCE_METERS = 40; // これより近ければ「同じ場所」とみなす
+        const DUPLICATE_DISTANCE_METERS = 15; // これより近ければ「同じ場所」とみなす
     function checkDuplicateLocation(lat, lng, {excludeStoreId, excludeWishId} = {}){
       if(lat == null || lng == null) return null;
       const officialMatch = allStores.find(s=>
