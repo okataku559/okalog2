@@ -190,6 +190,9 @@
         <label id="f-missing-data-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
           <input type="checkbox" id="f-missing-data"> ⚠ データ不備のみ
         </label>
+                <label id="f-duplicate-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
+          <input type="checkbox" id="f-duplicate-only"> ⚠ 重複候補のみ
+        </label>
       </div>
     </div>
   </section>
@@ -445,6 +448,8 @@
         document.getElementById("f-missing-location-row").classList.toggle("flex", currentRole === "owner");
         document.getElementById("f-missing-data-row").classList.toggle("hidden", currentRole !== "owner");
         document.getElementById("f-missing-data-row").classList.toggle("flex", currentRole === "owner");
+                document.getElementById("f-duplicate-row").classList.toggle("hidden", currentRole !== "owner");
+        document.getElementById("f-duplicate-row").classList.toggle("flex", currentRole === "owner");
         document.getElementById("f-favorites-row").classList.remove("hidden");
         document.getElementById("f-favorites-row").classList.add("flex");
       }else{
@@ -453,6 +458,7 @@
         formSection.classList.add("hidden");
         document.getElementById("f-missing-location-row").classList.add("hidden");
         document.getElementById("f-missing-data-row").classList.add("hidden");
+                document.getElementById("f-duplicate-row").classList.add("hidden");
         document.getElementById("f-favorites-row").classList.add("hidden");
       }
       renderWishlistAuthState();
@@ -555,7 +561,7 @@
     // ---------------------------------------------------------------
     // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, missingData:false, favoritesOnly:false, nearMeOnly:false, nearMeRadiusKm:3 };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, missingData:false, duplicateOnly:false, favoritesOnlynearMeOnly:false, nearMeRadiusKm:3 };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
     let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
     // ---------------------------------------------------------------
@@ -768,6 +774,7 @@
         if(state.scene && !(s.scenes||[]).includes(state.scene)) return false;
         if(state.missingLocation && (s.lat && s.lng)) return false;
         if(state.missingData && getMissingFields(s).length === 0) return false;
+                if(state.duplicateOnly && !findDuplicateCandidate(s)) return false;
         if(state.favoritesOnly && !myFavorites.has(`official:${s.id}`)) return false;
         if(kw && !(`${s.name} ${s.features||""}`).toLowerCase().includes(kw)) return false;
         if(nearActive){
@@ -810,13 +817,14 @@
         const hasLocation = !!(s.lat && s.lng);
         const missingFields = getMissingFields(s);
         const hasMissingData = missingFields.length > 0;
+                const dupCandidate = isOwner ? findDuplicateCandidate(s) : null;
         const card = document.createElement("article");
         card.className = "store-card bg-white border border-[var(--line)] rounded-xl p-3";
         card.dataset.id = s.id;
         card.innerHTML = `
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
             <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}</h3>
+              <h3 class="font-bold text-base truncate">${s.name}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}${dupCandidate ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ 重複候補あり（${dupCandidate.name}と近い）</span>` : ''}</h3>
               <p class="text-xs text-[var(--ink)]/60">${s.area || "エリア未設定"} ／ ${s.genre || "ジャンル未設定"}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
@@ -1084,7 +1092,6 @@
       const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
-    const DUPLICATE_DISTANCE_METERS = 40; // これより近ければ「同じ場所」とみなす
         const DUPLICATE_DISTANCE_METERS = 15; // これより近ければ「同じ場所」とみなす
     function checkDuplicateLocation(lat, lng, {excludeStoreId, excludeWishId} = {}){
       if(lat == null || lng == null) return null;
