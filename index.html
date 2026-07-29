@@ -561,7 +561,7 @@
     // ---------------------------------------------------------------
     // 検索・絞り込み状態（実際に行って良かった店：すべてプルダウンの単一選択。変更したら即反映）
     // ---------------------------------------------------------------
-    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, missingData:false, duplicateOnly:false, favoritesOnlynearMeOnly:false, nearMeRadiusKm:3 };
+    const state = { pref:"", area:"", genre:"", scene:"", keyword:"", missingLocation:false, missingData:false, duplicateOnly:false, favoritesOnly:false, nearMeOnly:false,nearMeRadiusKm:3 };
     let allStores = []; let markers = {}; let map, infoWindow, geocoder;
     let myVisitedIds = new Set(); // 自分が「実際に行った」と記録した restaurants の id
     // ---------------------------------------------------------------
