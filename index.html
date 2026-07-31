@@ -454,7 +454,7 @@
         document.getElementById("f-favorites-row").classList.add("flex");
       }else{
         box.innerHTML = `<button id="btn-login" class="underline underline-offset-2">Googleでログイン</button>`;
-        document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
+               document.getElementById("btn-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider).catch(e=>{ console.error(e); alert(`ログインに失敗しました：${e.code || e.message}`); }));
         formSection.classList.add("hidden");
         document.getElementById("f-missing-location-row").classList.add("hidden");
         document.getElementById("f-missing-data-row").classList.add("hidden");
@@ -538,8 +538,7 @@
         document.getElementById("empty-state").classList.add("hidden");
       }
     }
-    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider));
-
+    document.getElementById("btn-wishlist-login").addEventListener("click", ()=> signInWithPopup(auth, googleProvider).catch(e=>{ console.error(e); alert(`ログインに失敗しました：${e.code || e.message}`); }));
     // 「?mode=wishlist」でアクセスされた場合（旧wishlist.htmlのリンク・マイページからの遷移用）は自動でタブを切替
     // 「&edit=店舗ID」が付いていれば、データ読み込み後に自動でその項目の編集フォームを開く
     // 「&highlight=対象ID」が付いていれば、データ読み込み後にその項目までスクロールしてハイライトする
