@@ -10,7 +10,7 @@
 // ============================================================================
 
 const PROD_CONFIG = {
-  apiKey: "AIzaSyCA•••••••••••••••••••••••••••••••",
+  apiKey: "AIzaSyCASSY00FdrBv5RhRws6X-jYdQeyVg4FSo",
   authDomain: "okalog2.firebaseapp.com",
   projectId: "okalog2",
   storageBucket: "okalog2.firebasestorage.app",
@@ -20,7 +20,7 @@ const PROD_CONFIG = {
 };
 
 const STAGING_CONFIG = {
-  apiKey: "AIzaSyAz•••••••••••••••••••••••••••••••",
+  apiKey: "AIzaSyAzWmjAIZXX9q_X1un9Ybe_fAtOshWoyZU",
   authDomain: "okalog2-staging.firebaseapp.com",
   projectId: "okalog2-staging",
   storageBucket: "okalog2-staging.firebasestorage.app",
@@ -45,7 +45,7 @@ console.log(
   `[おかログ] Firebase環境: ${isStaging ? "検証(staging)" : "本番(production)"} (projectId: ${firebaseConfig.projectId})`
 );
 
-export const GOOGLE_MAPS_API_KEY = "AIzaSyCn•••••••••••••••••••••••••••••••";
+export const GOOGLE_MAPS_API_KEY = "AIzaSyCnVGWGUIUMgqOw2UbjeAWKfJRsoOkgIkw";
 
 // 削除依頼メール通知用（EmailJS）
 export const EMAILJS_PUBLIC_KEY = "atB1vP1gEA7QY80dx";
