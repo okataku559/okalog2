@@ -278,6 +278,15 @@
           </div>
           </div>
         </details>
+
+        <div id="propose-banner" class="bg-[var(--wish)]/10 border border-[var(--wish)] rounded-xl p-3 flex items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-bold text-[var(--wish)]">🎉 幹事サポート</p>
+            <p class="text-xs text-[var(--ink)]/60">お店・日程をみんなに投票してもらって、サクッと決めよう</p>
+          </div>
+          <button type="button" id="btn-open-propose" class="btn-wish rounded-full px-4 py-1.5 text-xs font-bold shrink-0">はじめる</button>
+        </div>
+
         <div class="flex flex-wrap gap-2">
           <select id="wl-f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
           <select id="wl-f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
@@ -308,23 +317,28 @@
             <option value="5">5km</option>
             <option value="10">10km</option>
           </select>
-          <button type="button" id="btn-open-propose" class="flex items-center gap-1 text-xs bg-white border border-[var(--wish)] text-[var(--wish)] rounded-full px-3 py-1.5 shrink-0">📊 みんなで決める</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- みんなで決める：提案作成ダイアログ（幹事＝ログイン中のユーザーが使う） -->
+  <!-- 幹事サポート：提案作成ダイアログ（幹事＝ログイン中のユーザーが使う） -->
   <dialog id="propose-dialog" class="w-[92vw] max-w-lg">
     <div class="p-4 space-y-3">
-      <h2 class="font-bold text-base">みんなで決める（店・日程の投票）</h2>
-      <p class="text-xs text-[var(--ink)]/60">「行ってみたい店」から候補を選んで、友達に投票してもらえます。投票する友達はログイン不要です。</p>
+      <h2 class="font-bold text-base">🎉 幹事サポート</h2>
+      <p class="text-xs text-[var(--ink)]/60">候補のお店・日程を選ぶと、友達に投票してもらえるURLができます。投票する友達はログイン不要です。</p>
       <label class="block text-xs font-bold">タイトル <span class="text-[var(--ink)]/40 font-normal">任意</span>
         <input id="pp-title" type="text" placeholder="例：忘年会どこ行く？" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
       </label>
       <div>
         <p class="text-xs font-bold mb-1">候補のお店 <span class="text-[var(--shu)] font-normal">2〜5件選択</span></p>
-        <div id="pp-store-list" class="space-y-1 max-h-48 overflow-y-auto border border-[var(--line)] rounded p-2"></div>
+        <div class="flex gap-1.5">
+          <button type="button" data-role="pp-source-tab" data-source="wishlist" class="text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-[var(--wish)] text-white">行ってみたい店</button>
+          <button type="button" data-role="pp-source-tab" data-source="official" class="text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">実際に行って良かった店</button>
+        </div>
+        <input id="pp-store-search" type="text" placeholder="店名で絞り込む" class="w-full border border-[var(--line)] rounded px-2 py-1 text-xs mt-1.5">
+        <div id="pp-store-list" class="space-y-1 max-h-48 overflow-y-auto border border-[var(--line)] rounded p-2 mt-1.5"></div>
+        <p class="text-[10px] text-[var(--ink)]/50 mt-1">選択中：<span id="pp-selected-count">0</span>件</p>
       </div>
       <div>
         <p class="text-xs font-bold mb-1">候補の日程 <span class="text-[var(--shu)] font-normal">1件以上</span></p>
@@ -1828,7 +1842,7 @@
     });
 
     // ---------------------------------------------------------------
-    // みんなで決める（幹事が候補店・日程を選び、友達がログイン不要で投票できる提案を作成する）
+    // 幹事サポート（幹事が候補店・日程を選び、友達がログイン不要で投票できる提案を作成する）
     // ---------------------------------------------------------------
     function generateProposalToken(){
       const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -1836,22 +1850,84 @@
       for(let i=0;i<24;i++) s += chars[Math.floor(Math.random()*chars.length)];
       return s;
     }
+    const WEEKDAY_JA = ["日","月","火","水","木","金","土"];
+    function formatDateChoice(dateStr, timeStr){
+      if(!dateStr) return "";
+      const d = new Date(dateStr + "T00:00:00");
+      const label = `${d.getMonth()+1}/${d.getDate()}(${WEEKDAY_JA[d.getDay()]})`;
+      return timeStr ? `${label} ${timeStr}〜` : label;
+    }
+    function timeSelectOptions(selected){
+      const opts = [];
+      for(let h=11; h<=23; h++){
+        for(const m of [0,30]){
+          const v = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+          opts.push(`<option value="${v}"${v===selected?" selected":""}>${v}</option>`);
+        }
+      }
+      return opts.join("");
+    }
     function addProposeDateRow(){
       const row = document.createElement("div");
       row.className = "flex gap-1";
-      row.innerHTML = `<input type="text" placeholder="例：8/15(金) 19:00〜" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-sm" data-role="pp-date-input">
+      row.innerHTML = `<input type="date" class="border border-[var(--line)] rounded px-2 py-1 text-sm" data-role="pp-date-input">
+        <select class="border border-[var(--line)] rounded px-2 py-1 text-sm" data-role="pp-time-input">${timeSelectOptions("19:00")}</select>
         <button type="button" class="text-xs text-[var(--shu)] px-1" data-role="pp-date-remove">✕</button>`;
       row.querySelector('[data-role="pp-date-remove"]').addEventListener("click", ()=> row.remove());
       document.getElementById("pp-dates").appendChild(row);
     }
-    function openProposeDialog(){
+
+    // 候補店選択の状態（"wishlist:id" / "official:id" をキーに、タブ・検索を切り替えても保持する）
+    let ppSelected = new Map(); // key -> {source, id}
+    let ppActiveSource = "wishlist";
+    function ppSourceItems(){
+      return ppActiveSource === "wishlist" ? allWishItems : allStores;
+    }
+    function renderProposeStoreList(){
       const box = document.getElementById("pp-store-list");
-      box.innerHTML = allWishItems.map(w=>`
-        <label class="flex items-center gap-2 text-xs">
-          <input type="checkbox" value="${w.id}" data-role="pp-store-check">
-          ${escapeHtml(w.name)}${w.area ? `（${escapeHtml(w.area)}）` : ""}
-        </label>
-      `).join("") || `<p class="text-xs text-[var(--ink)]/50">行ってみたい店がまだ登録されていません。先に登録してください。</p>`;
+      const kw = document.getElementById("pp-store-search").value.trim().toLowerCase();
+      const items = ppSourceItems().filter(it=> !kw || (it.name||"").toLowerCase().includes(kw));
+      box.innerHTML = items.map(it=>{
+        const key = `${ppActiveSource}:${it.id}`;
+        return `<label class="flex items-center gap-2 text-xs">
+          <input type="checkbox" value="${key}" data-role="pp-store-check"${ppSelected.has(key)?" checked":""}>
+          ${escapeHtml(it.name)}${it.area ? `（${escapeHtml(it.area)}）` : ""}
+        </label>`;
+      }).join("") || `<p class="text-xs text-[var(--ink)]/50">登録がまだありません。</p>`;
+      box.querySelectorAll('[data-role="pp-store-check"]').forEach(cb=>{
+        cb.addEventListener("change", ()=>{
+          if(cb.checked) ppSelected.set(cb.value, { source: ppActiveSource, id: cb.value.split(":")[1] });
+          else ppSelected.delete(cb.value);
+          document.getElementById("pp-selected-count").textContent = String(ppSelected.size);
+        });
+      });
+    }
+    document.querySelectorAll('[data-role="pp-source-tab"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        ppActiveSource = btn.dataset.source;
+        document.querySelectorAll('[data-role="pp-source-tab"]').forEach(b=>{
+          const active = b === btn;
+          b.classList.toggle("bg-[var(--wish)]", active);
+          b.classList.toggle("text-white", active);
+          b.classList.toggle("bg-white", !active);
+        });
+        renderProposeStoreList();
+      });
+    });
+    document.getElementById("pp-store-search").addEventListener("input", renderProposeStoreList);
+
+    function openProposeDialog(){
+      ppSelected = new Map();
+      ppActiveSource = "wishlist";
+      document.getElementById("pp-store-search").value = "";
+      document.getElementById("pp-selected-count").textContent = "0";
+      document.querySelectorAll('[data-role="pp-source-tab"]').forEach(b=>{
+        const active = b.dataset.source === "wishlist";
+        b.classList.toggle("bg-[var(--wish)]", active);
+        b.classList.toggle("text-white", active);
+        b.classList.toggle("bg-white", !active);
+      });
+      renderProposeStoreList();
       document.getElementById("pp-dates").innerHTML = "";
       addProposeDateRow(); addProposeDateRow();
       document.getElementById("pp-title").value = "";
@@ -1865,15 +1941,19 @@
     document.getElementById("pp-cancel")?.addEventListener("click", ()=> document.getElementById("propose-dialog").close());
     document.getElementById("pp-submit")?.addEventListener("click", async ()=>{
       const statusEl = document.getElementById("pp-status");
-      const storeIds = [...document.querySelectorAll('[data-role="pp-store-check"]:checked')].map(el=> el.value);
-      if(storeIds.length < 2 || storeIds.length > 5){ statusEl.textContent = "候補のお店は2〜5件選んでください。"; return; }
-      const dates = [...document.querySelectorAll('[data-role="pp-date-input"]')].map(el=> el.value.trim()).filter(Boolean);
-      if(dates.length === 0){ statusEl.textContent = "候補の日程を1件以上入力してください。"; return; }
+      if(ppSelected.size < 2 || ppSelected.size > 5){ statusEl.textContent = "候補のお店は2〜5件選んでください。"; return; }
+      const dateRows = [...document.querySelectorAll("#pp-dates > div")];
+      const dates = dateRows.map(row=>{
+        const d = row.querySelector('[data-role="pp-date-input"]').value;
+        const t = row.querySelector('[data-role="pp-time-input"]').value;
+        return formatDateChoice(d, t);
+      }).filter(Boolean);
+      if(dates.length === 0){ statusEl.textContent = "候補の日程を1件以上、日付を入力してください。"; return; }
       statusEl.textContent = "";
-      const candidateStores = storeIds.map(id=>{
-        const w = allWishItems.find(x=> x.id === id);
-        const link = normalizeLinks(w, "referenceUrl", "参考リンク")[0];
-        return { id: w.id, name: w.name, area: w.area || "", genre: w.genre || "", address: w.address || "",
+      const candidateStores = [...ppSelected.values()].map(({source, id})=>{
+        const w = (source === "wishlist" ? allWishItems : allStores).find(x=> x.id === id);
+        const link = normalizeLinks(w, source === "wishlist" ? "referenceUrl" : "url", "参考リンク")[0];
+        return { id: w.id, source, name: w.name, area: w.area || "", genre: w.genre || "", address: w.address || "",
           linkUrl: link ? link.url : "", linkLabel: link ? link.label : "" };
       });
       const token = generateProposalToken();
