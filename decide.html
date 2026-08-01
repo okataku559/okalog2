@@ -189,6 +189,7 @@
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         el.innerHTML = `
           <p class="text-sm font-bold">${escapeHtml(s.name)}${s.area ? `<span class="font-normal text-[var(--ink)]/60">（${escapeHtml(s.area)}）</span>` : ""}</p>
+          ${(s.budget || s.businessHours) ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${[s.budget, s.businessHours].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
           ${s.address ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${escapeHtml(s.address)}</p>` : ""}
           <a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2" onclick="event.stopPropagation()">📍 地図で見る</a>
         `;
