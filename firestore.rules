@@ -113,6 +113,18 @@ service cloud.firestore {
       allow update: if request.auth != null && isOwner();
     }
 
+    // proposals：幹事サポート機能。幹事（ログイン済み）が候補店・日程を提案として作成。
+    // 参加者はログイン不要で投票できる（ランダムな長いURLだけで幹事用パネルを保護する簡易設計）。
+    match /proposals/{proposalId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if true;
+      match /votes/{voteId} {
+        allow read: if true;
+        allow create, update: if true;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
