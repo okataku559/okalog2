@@ -141,6 +141,14 @@
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
       }[c]));
     }
+    // index.htmlのformatBusinessHoursと同じロジック（このファイル単体で完結させるため複製）
+    function formatBusinessHours(bh){
+      if(!bh) return "";
+      const blocks = [];
+      if(bh.start1 && bh.end1) blocks.push(`${bh.start1}〜${bh.end1}`);
+      if(bh.start2 && bh.end2) blocks.push(`${bh.start2}〜${bh.end2}`);
+      return blocks.join(" ／ ");
+    }
 
     const params = new URLSearchParams(location.search);
     const proposalId = params.get("id");
@@ -189,7 +197,7 @@
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
         el.innerHTML = `
           <p class="text-sm font-bold">${escapeHtml(s.name)}${s.area ? `<span class="font-normal text-[var(--ink)]/60">（${escapeHtml(s.area)}）</span>` : ""}</p>
-          ${(s.budget || s.businessHours) ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${[s.budget, s.businessHours].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
+          ${(s.budget || formatBusinessHours(s.businessHours)) ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${[s.budget, formatBusinessHours(s.businessHours)].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
           ${s.address ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${escapeHtml(s.address)}</p>` : ""}
           <a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2" onclick="event.stopPropagation()">📍 地図で見る</a>
         `;
