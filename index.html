@@ -308,10 +308,37 @@
             <option value="5">5km</option>
             <option value="10">10km</option>
           </select>
+          <button type="button" id="btn-open-propose" class="flex items-center gap-1 text-xs bg-white border border-[var(--wish)] text-[var(--wish)] rounded-full px-3 py-1.5 shrink-0">📊 みんなで決める</button>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- みんなで決める：提案作成ダイアログ（幹事＝ログイン中のユーザーが使う） -->
+  <dialog id="propose-dialog" class="w-[92vw] max-w-lg">
+    <div class="p-4 space-y-3">
+      <h2 class="font-bold text-base">みんなで決める（店・日程の投票）</h2>
+      <p class="text-xs text-[var(--ink)]/60">「行ってみたい店」から候補を選んで、友達に投票してもらえます。投票する友達はログイン不要です。</p>
+      <label class="block text-xs font-bold">タイトル <span class="text-[var(--ink)]/40 font-normal">任意</span>
+        <input id="pp-title" type="text" placeholder="例：忘年会どこ行く？" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
+      </label>
+      <div>
+        <p class="text-xs font-bold mb-1">候補のお店 <span class="text-[var(--shu)] font-normal">2〜5件選択</span></p>
+        <div id="pp-store-list" class="space-y-1 max-h-48 overflow-y-auto border border-[var(--line)] rounded p-2"></div>
+      </div>
+      <div>
+        <p class="text-xs font-bold mb-1">候補の日程 <span class="text-[var(--shu)] font-normal">1件以上</span></p>
+        <div id="pp-dates" class="space-y-1"></div>
+        <button type="button" id="pp-dates-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ 日程を追加</button>
+      </div>
+      <p id="pp-status" class="text-xs text-[var(--shu)]"></p>
+      <div id="pp-result" class="hidden space-y-2 bg-[var(--paper-dim)] rounded p-3"></div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="pp-cancel" class="text-sm px-3 py-1.5 rounded-full border border-[var(--line)]">閉じる</button>
+        <button type="button" id="pp-submit" class="text-sm px-4 py-1.5 rounded-full btn-wish">作成する</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- メイン（地図が上・リストが下の縦並びレイアウト） -->
   <main class="flex-1 max-w-4xl w-full mx-auto flex flex-col gap-3 px-4 py-4">
@@ -1797,6 +1824,96 @@
         alert(`保存に失敗しました。\n\nエラー内容：${err.code || err.message}\n\nFirestoreのルールが最新版になっているか確認してください。`);
       }finally{
         btn.disabled = false;
+      }
+    });
+
+    // ---------------------------------------------------------------
+    // みんなで決める（幹事が候補店・日程を選び、友達がログイン不要で投票できる提案を作成する）
+    // ---------------------------------------------------------------
+    function generateProposalToken(){
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+      let s = "";
+      for(let i=0;i<24;i++) s += chars[Math.floor(Math.random()*chars.length)];
+      return s;
+    }
+    function addProposeDateRow(){
+      const row = document.createElement("div");
+      row.className = "flex gap-1";
+      row.innerHTML = `<input type="text" placeholder="例：8/15(金) 19:00〜" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-sm" data-role="pp-date-input">
+        <button type="button" class="text-xs text-[var(--shu)] px-1" data-role="pp-date-remove">✕</button>`;
+      row.querySelector('[data-role="pp-date-remove"]').addEventListener("click", ()=> row.remove());
+      document.getElementById("pp-dates").appendChild(row);
+    }
+    function openProposeDialog(){
+      const box = document.getElementById("pp-store-list");
+      box.innerHTML = allWishItems.map(w=>`
+        <label class="flex items-center gap-2 text-xs">
+          <input type="checkbox" value="${w.id}" data-role="pp-store-check">
+          ${escapeHtml(w.name)}${w.area ? `（${escapeHtml(w.area)}）` : ""}
+        </label>
+      `).join("") || `<p class="text-xs text-[var(--ink)]/50">行ってみたい店がまだ登録されていません。先に登録してください。</p>`;
+      document.getElementById("pp-dates").innerHTML = "";
+      addProposeDateRow(); addProposeDateRow();
+      document.getElementById("pp-title").value = "";
+      document.getElementById("pp-status").textContent = "";
+      document.getElementById("pp-result").classList.add("hidden");
+      document.getElementById("pp-submit").classList.remove("hidden");
+      document.getElementById("propose-dialog").showModal();
+    }
+    document.getElementById("btn-open-propose")?.addEventListener("click", openProposeDialog);
+    document.getElementById("pp-dates-add")?.addEventListener("click", addProposeDateRow);
+    document.getElementById("pp-cancel")?.addEventListener("click", ()=> document.getElementById("propose-dialog").close());
+    document.getElementById("pp-submit")?.addEventListener("click", async ()=>{
+      const statusEl = document.getElementById("pp-status");
+      const storeIds = [...document.querySelectorAll('[data-role="pp-store-check"]:checked')].map(el=> el.value);
+      if(storeIds.length < 2 || storeIds.length > 5){ statusEl.textContent = "候補のお店は2〜5件選んでください。"; return; }
+      const dates = [...document.querySelectorAll('[data-role="pp-date-input"]')].map(el=> el.value.trim()).filter(Boolean);
+      if(dates.length === 0){ statusEl.textContent = "候補の日程を1件以上入力してください。"; return; }
+      statusEl.textContent = "";
+      const candidateStores = storeIds.map(id=>{
+        const w = allWishItems.find(x=> x.id === id);
+        const link = normalizeLinks(w, "referenceUrl", "参考リンク")[0];
+        return { id: w.id, name: w.name, area: w.area || "", genre: w.genre || "", address: w.address || "",
+          linkUrl: link ? link.url : "", linkLabel: link ? link.label : "" };
+      });
+      const token = generateProposalToken();
+      try{
+        const ref = await addDoc(collection(db,"proposals"), {
+          organizerUid: currentUser.uid, organizerNickname: currentNickname,
+          title: document.getElementById("pp-title").value.trim(),
+          candidateStores, candidateDates: dates,
+          costConfig: null, status: "open", decidedStoreId: null, decidedDate: null,
+          organizerToken: token, createdAt: new Date().toISOString(),
+        });
+        const voteUrl = `${location.origin}/decide.html?id=${ref.id}`;
+        const organizerUrl = `${location.origin}/decide.html?id=${ref.id}&token=${token}`;
+        const resultBox = document.getElementById("pp-result");
+        resultBox.classList.remove("hidden");
+        resultBox.innerHTML = `
+          <p class="text-xs font-bold text-[var(--kin)]">作成しました！</p>
+          <div>
+            <p class="text-[10px] text-[var(--ink)]/60">友達に送るURL（投票用）</p>
+            <div class="flex gap-1"><input readonly value="${voteUrl}" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" onclick="this.select()"><button type="button" data-role="pp-share-vote" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">送る</button></div>
+          </div>
+          <div>
+            <p class="text-[10px] text-[var(--ink)]/60">あなた専用URL（結果確認・決定用）これはあなただけが保管してください</p>
+            <div class="flex gap-1"><input readonly value="${organizerUrl}" class="flex-1 border border-[var(--line)] rounded px-2 py-1 text-xs" onclick="this.select()"><button type="button" data-role="pp-copy-organizer" class="text-xs underline underline-offset-2 text-[var(--wish)] shrink-0">コピー</button></div>
+          </div>
+          <a href="${organizerUrl}" target="_blank" class="text-xs underline underline-offset-2 text-[var(--kin)]">結果ページを開く</a>
+        `;
+        resultBox.querySelector('[data-role="pp-share-vote"]').addEventListener("click", async ()=>{
+          const text = `${document.getElementById("pp-title").value.trim() || "どこ行くか決めよう！"}\n${voteUrl}`;
+          if(navigator.share){ try{ await navigator.share({ text }); }catch(e){} }
+          else{ await navigator.clipboard.writeText(text); alert("コピーしました。LINE等に貼り付けて送ってください。"); }
+        });
+        resultBox.querySelector('[data-role="pp-copy-organizer"]').addEventListener("click", async ()=>{
+          await navigator.clipboard.writeText(organizerUrl);
+          alert("コピーしました。");
+        });
+        document.getElementById("pp-submit").classList.add("hidden");
+      }catch(e){
+        console.error(e);
+        statusEl.textContent = `作成に失敗しました：${e.code || e.message}`;
       }
     });
 
