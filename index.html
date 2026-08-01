@@ -336,7 +336,12 @@
           <button type="button" data-role="pp-source-tab" data-source="wishlist" class="text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-[var(--wish)] text-white">行ってみたい店</button>
           <button type="button" data-role="pp-source-tab" data-source="official" class="text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">実際に行って良かった店</button>
         </div>
-        <input id="pp-store-search" type="text" placeholder="店名で絞り込む" class="w-full border border-[var(--line)] rounded px-2 py-1 text-xs mt-1.5">
+        <div class="grid grid-cols-2 gap-1.5 mt-1.5">
+          <select id="pp-store-pref" class="border border-[var(--line)] rounded px-2 py-1 text-xs bg-white"></select>
+          <select id="pp-store-area" class="border border-[var(--line)] rounded px-2 py-1 text-xs bg-white"></select>
+          <select id="pp-store-genre" class="border border-[var(--line)] rounded px-2 py-1 text-xs bg-white col-span-2"></select>
+        </div>
+        <input id="pp-store-search" type="text" placeholder="店名・特徴で絞り込む" class="w-full border border-[var(--line)] rounded px-2 py-1 text-xs mt-1.5">
         <div id="pp-store-list" class="space-y-1 max-h-48 overflow-y-auto border border-[var(--line)] rounded p-2 mt-1.5"></div>
         <p class="text-[10px] text-[var(--ink)]/50 mt-1">選択中：<span id="pp-selected-count">0</span>件</p>
       </div>
@@ -1880,20 +1885,53 @@
     // 候補店選択の状態（"wishlist:id" / "official:id" をキーに、タブ・検索を切り替えても保持する）
     let ppSelected = new Map(); // key -> {source, id}
     let ppActiveSource = "wishlist";
+    let ppFilter = { pref: "", area: "", genre: "" };
     function ppSourceItems(){
       return ppActiveSource === "wishlist" ? allWishItems : allStores;
     }
+    function ppFillAreaSelect(){
+      const areaSel = document.getElementById("pp-store-area");
+      if(!ppFilter.pref){
+        areaSel.innerHTML = `<option value="">エリア（都道府県を選択）</option>`;
+        areaSel.disabled = true; areaSel.value = "";
+        return;
+      }
+      const areas = [...new Set(ppSourceItems().filter(it=> it.prefecture === ppFilter.pref).map(it=> it.area).filter(Boolean))].sort();
+      areaSel.innerHTML = `<option value="">エリア（すべて）</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+      areaSel.disabled = false; areaSel.value = ppFilter.area;
+    }
+    function ppFillFilterSelects(){
+      const items = ppSourceItems();
+      const prefSel = document.getElementById("pp-store-pref");
+      prefSel.innerHTML = buildGroupedPrefOptions(items.map(it=> it.prefecture).filter(Boolean), "都道府県（すべて）");
+      prefSel.value = ppFilter.pref;
+      ppFillAreaSelect();
+      const genreSel = document.getElementById("pp-store-genre");
+      genreSel.innerHTML = `<option value="">ジャンル（すべて）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
+      genreSel.value = ppFilter.genre;
+    }
+    document.getElementById("pp-store-pref").addEventListener("change", e=>{
+      ppFilter.pref = e.target.value; ppFilter.area = "";
+      ppFillAreaSelect(); renderProposeStoreList();
+    });
+    document.getElementById("pp-store-area").addEventListener("change", e=>{ ppFilter.area = e.target.value; renderProposeStoreList(); });
+    document.getElementById("pp-store-genre").addEventListener("change", e=>{ ppFilter.genre = e.target.value; renderProposeStoreList(); });
     function renderProposeStoreList(){
       const box = document.getElementById("pp-store-list");
       const kw = document.getElementById("pp-store-search").value.trim().toLowerCase();
-      const items = ppSourceItems().filter(it=> !kw || (it.name||"").toLowerCase().includes(kw));
+      const items = ppSourceItems().filter(it=>
+        (!ppFilter.pref || it.prefecture === ppFilter.pref) &&
+        (!ppFilter.area || it.area === ppFilter.area) &&
+        (!ppFilter.genre || it.genre === ppFilter.genre) &&
+        (!kw || `${it.name||""} ${it.features||it.memo||""}`.toLowerCase().includes(kw))
+      );
       box.innerHTML = items.map(it=>{
         const key = `${ppActiveSource}:${it.id}`;
         return `<label class="flex items-center gap-2 text-xs">
           <input type="checkbox" value="${key}" data-role="pp-store-check"${ppSelected.has(key)?" checked":""}>
           ${escapeHtml(it.name)}${it.area ? `（${escapeHtml(it.area)}）` : ""}
         </label>`;
-      }).join("") || `<p class="text-xs text-[var(--ink)]/50">登録がまだありません。</p>`;
+      }).join("") || `<p class="text-xs text-[var(--ink)]/50">条件に合う登録がありません。</p>`;
       box.querySelectorAll('[data-role="pp-store-check"]').forEach(cb=>{
         cb.addEventListener("change", ()=>{
           if(cb.checked) ppSelected.set(cb.value, { source: ppActiveSource, id: cb.value.split(":")[1] });
@@ -1905,12 +1943,15 @@
     document.querySelectorAll('[data-role="pp-source-tab"]').forEach(btn=>{
       btn.addEventListener("click", ()=>{
         ppActiveSource = btn.dataset.source;
+        ppFilter = { pref: "", area: "", genre: "" };
+        document.getElementById("pp-store-search").value = "";
         document.querySelectorAll('[data-role="pp-source-tab"]').forEach(b=>{
           const active = b === btn;
           b.classList.toggle("bg-[var(--wish)]", active);
           b.classList.toggle("text-white", active);
           b.classList.toggle("bg-white", !active);
         });
+        ppFillFilterSelects();
         renderProposeStoreList();
       });
     });
@@ -1919,6 +1960,7 @@
     function openProposeDialog(){
       ppSelected = new Map();
       ppActiveSource = "wishlist";
+      ppFilter = { pref: "", area: "", genre: "" };
       document.getElementById("pp-store-search").value = "";
       document.getElementById("pp-selected-count").textContent = "0";
       document.querySelectorAll('[data-role="pp-source-tab"]').forEach(b=>{
@@ -1927,6 +1969,7 @@
         b.classList.toggle("text-white", active);
         b.classList.toggle("bg-white", !active);
       });
+      ppFillFilterSelects();
       renderProposeStoreList();
       document.getElementById("pp-dates").innerHTML = "";
       addProposeDateRow(); addProposeDateRow();
