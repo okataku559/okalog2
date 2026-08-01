@@ -2436,7 +2436,84 @@
       geocoder = new google.maps.Geocoder();
       renderUserLocationMarker();
       loadStoresAndRefresh(true);
+      setupPlaceAutocomplete("sf");
+      setupPlaceAutocomplete("wl");
     };
+    // ---------------------------------------------------------------
+    // 店名検索での自動入力（Google Places API）
+    // 店名欄にGoogleマップと同じ候補入力を付け、選択すると店名・住所・営業時間（目安）・
+    // 予算（目安）を自動入力する。ジャンル・おすすめポイント・参考リンクは対象外（要手入力）。
+    // ---------------------------------------------------------------
+    function mapPriceLevel(level){
+      // Googleの価格帯（0〜4の5段階）を、うちの価格帯（8段階）のおおよその近似値にマッピング
+      const table = ["〜1,000円", "1,000〜2,000円", "3,000〜4,000円", "5,000〜7,000円", "10,000円〜"];
+      return table[level] || "";
+    }
+    // Google Places の営業時間（曜日ごとのopen/close配列）を、うちの「時間帯2つ＋定休日」形式に変換する簡易ロジック。
+    // 曜日によって時間が違う店もあるが、データがある最初の曜日を代表として採用する（目安）。
+    function mapPlaceOpeningHours(periods){
+      const dayLabel = ["日","月","火","水","木","金","土"]; // Google: 0=日曜
+      const byDay = {};
+      (periods || []).forEach(p=>{
+        if(!p.open) return;
+        const d = p.open.day;
+        if(!byDay[d]) byDay[d] = [];
+        byDay[d].push({
+          start: `${p.open.time.slice(0,2)}:${p.open.time.slice(2,4)}`,
+          end: p.close ? `${p.close.time.slice(0,2)}:${p.close.time.slice(2,4)}` : "",
+        });
+      });
+      const openDays = Object.keys(byDay).map(Number);
+      // Google: 0=日〜6=土。うちの並び（月〜日）に合わせて曜日ラベルを組み立てる
+      const closedLabels = [1,2,3,4,5,6,0].filter(d=> !openDays.includes(d)).map(d=> dayLabel[d]);
+      const repDay = openDays.sort((a,b)=>a-b)[0];
+      const blocks = repDay!=null ? (byDay[repDay]||[]) : [];
+      return {
+        businessHours: {
+          start1: blocks[0]?.start || "", end1: blocks[0]?.end || "",
+          start2: blocks[1]?.start || "", end2: blocks[1]?.end || "",
+        },
+        closedDays: closedLabels,
+      };
+    }
+    function setupPlaceAutocomplete(prefix){
+      const input = document.getElementById(`${prefix}-name`);
+      if(!input || !google.maps.places) return;
+      const ac = new google.maps.places.Autocomplete(input, {
+        fields: ["name","formatted_address","opening_hours","price_level"],
+      });
+      ac.addListener("place_changed", async ()=>{
+        const place = ac.getPlace();
+        if(!place || !place.name) return;
+        const statusEl = document.getElementById(`${prefix}-autofill-status`);
+        input.value = place.name;
+        const filled = ["店名"];
+        if(place.formatted_address){
+          document.getElementById(`${prefix}-address`).value = place.formatted_address;
+          filled.push("住所");
+          if(prefix === "sf") await autofillOfficialAddressFields(place.formatted_address);
+          else await autofillWishlistAddressFields(place.formatted_address);
+        }
+        if(place.opening_hours?.periods?.length){
+          const { businessHours, closedDays } = mapPlaceOpeningHours(place.opening_hours.periods);
+          document.getElementById(`${prefix}-hours-start1`).value = businessHours.start1;
+          document.getElementById(`${prefix}-hours-end1`).value = businessHours.end1;
+          document.getElementById(`${prefix}-hours-start2`).value = businessHours.start2;
+          document.getElementById(`${prefix}-hours-end2`).value = businessHours.end2;
+          const closedSet = new Set(closedDays);
+          document.querySelectorAll(`#${prefix}-closed-days input[type=checkbox]`).forEach(cb=> cb.checked = closedSet.has(cb.value));
+          filled.push("営業時間（目安）");
+        }
+        if(place.price_level != null){
+          document.getElementById(`${prefix}-budget`).value = mapPriceLevel(place.price_level);
+          filled.push("予算（目安）");
+        }
+        if(statusEl){
+          statusEl.textContent = `✓ ${filled.join("・")}を自動入力しました。内容をご確認ください（ジャンル・おすすめポイント・参考リンクは引き続き手入力です）`;
+          statusEl.classList.remove("hidden");
+        }
+      });
+    }
     // type: "official"（赤・標準ピン）または "wishlist"（青ピン）で色分け
     function renderMarkers(items, type){
       Object.values(markers).forEach(m=> m.setMap(null)); markers = {};
@@ -2466,7 +2543,7 @@
     fillWishlistFormOptions();
     requestUserLocation();
     const mapScript = document.createElement("script");
-    mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
+    mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
     mapScript.async = true;
     document.head.appendChild(mapScript);
   </script>
