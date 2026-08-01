@@ -146,17 +146,26 @@
             </select>
           </label>
           <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-              <select id="sf-budget" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"><option value="">未設定</option></select>
-            </label>
-            <label class="block text-xs font-bold">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-              <input type="text" id="sf-closed" placeholder="例：月曜定休" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
-            </label>
-          </div>
-          <label class="block text-xs font-bold">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-            <input type="text" id="sf-hours" placeholder="例：11:00-14:00, 17:00-23:00" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
+          <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+            <select id="sf-budget" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"><option value="">未設定</option></select>
           </label>
+          <div>
+            <p class="text-xs font-bold mb-1">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span></p>
+            <div id="sf-closed-days" class="flex flex-wrap gap-1.5"></div>
+          </div>
+          <div>
+            <p class="text-xs font-bold mb-1">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意・時間帯を2つまで設定できます</span></p>
+            <div class="flex items-center gap-1 flex-wrap">
+              <select id="sf-hours-start1" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+              <span class="text-xs">〜</span>
+              <select id="sf-hours-end1" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap mt-1">
+              <select id="sf-hours-start2" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+              <span class="text-xs">〜</span>
+              <select id="sf-hours-end2" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+            </div>
+          </div>
           <label class="block text-xs font-bold">おすすめポイント <span class="text-[var(--ink)]/40 font-normal">任意</span>（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
           <div>
             <p class="text-xs font-bold mb-1">参考リンク <span class="text-[var(--ink)]/40 font-normal">任意</span>（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
@@ -251,17 +260,26 @@
           <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
             <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
           </label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-              <select id="wl-budget" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"><option value="">未設定</option></select>
-            </label>
-            <label class="block text-xs font-bold">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-              <input type="text" id="wl-closed" placeholder="例：月曜定休" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
-            </label>
-          </div>
-          <label class="block text-xs font-bold">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意</span>
-            <input type="text" id="wl-hours" placeholder="例：11:00-14:00, 17:00-23:00" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
+          <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+            <select id="wl-budget" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"><option value="">未設定</option></select>
           </label>
+          <div>
+            <p class="text-xs font-bold mb-1">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span></p>
+            <div id="wl-closed-days" class="flex flex-wrap gap-1.5"></div>
+          </div>
+          <div>
+            <p class="text-xs font-bold mb-1">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意・時間帯を2つまで設定できます</span></p>
+            <div class="flex items-center gap-1 flex-wrap">
+              <select id="wl-hours-start1" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+              <span class="text-xs">〜</span>
+              <select id="wl-hours-end1" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap mt-1">
+              <select id="wl-hours-start2" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+              <span class="text-xs">〜</span>
+              <select id="wl-hours-end2" class="border border-[var(--line)] rounded px-1 py-1 text-xs"></select>
+            </div>
+          </div>
           <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
           <div>
@@ -412,7 +430,7 @@
       query, where, orderBy, limit, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { GENRES, SCENES, REGIONS, BUDGET_RANGES } from "./constants.js";
+    import { GENRES, SCENES, REGIONS, BUDGET_RANGES, WEEKDAYS } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, EMAILJS_SHARE_TEMPLATE_ID
@@ -914,7 +932,7 @@
             </div>
             ${currentUser ? `<button data-role="favorite" aria-label="お気に入り" class="shrink-0 text-xl leading-none">${myFavorites.has(`official:${s.id}`) ? "❤️" : "🤍"}</button>` : ""}
           </div>
-          ${(s.budget || s.businessHours || s.closedDays) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[s.budget, s.businessHours, s.closedDays].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
+          ${(s.budget || formatBusinessHours(s.businessHours) || formatClosedDays(s.closedDays)) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[s.budget, formatBusinessHours(s.businessHours), formatClosedDays(s.closedDays)].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
           ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${escapeHtml(s.features)}</p>` : ""}
           <p class="text-xs text-[var(--ink)]/60 mt-2">${escapeHtml(s.address)}</p>
           <div class="flex flex-wrap gap-3 mt-1 text-xs items-center">
@@ -1207,17 +1225,57 @@
       el.classList.remove("hidden");
     }
 
+    // 営業時間プルダウンの選択肢（6:00〜24:00・30分刻み）。幹事サポートの日程選択とは別に用意。
+    function hoursSelectOptions(){
+      const opts = ['<option value="">--:--</option>'];
+      for(let h=6; h<=24; h++){
+        const v = `${String(h).padStart(2,"0")}:00`;
+        opts.push(`<option value="${v}">${v}</option>`);
+        if(h<24){
+          const v2 = `${String(h).padStart(2,"0")}:30`;
+          opts.push(`<option value="${v2}">${v2}</option>`);
+        }
+      }
+      return opts.join("");
+    }
+    function fillHoursSelects(prefix){
+      ["1","2"].forEach(n=>{
+        document.getElementById(`${prefix}-hours-start${n}`).innerHTML = hoursSelectOptions();
+        document.getElementById(`${prefix}-hours-end${n}`).innerHTML = hoursSelectOptions();
+      });
+    }
+    function fillClosedDaysBox(elId){
+      document.getElementById(elId).innerHTML = WEEKDAYS.map(d=>
+        `<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${d}" class="mr-1">${d}</label>`
+      ).join("");
+    }
     function fillStaticFormOptions(){
       document.getElementById("sf-genre").innerHTML = GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("sf-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
       document.getElementById("sf-budget").innerHTML = `<option value="">未設定</option>` + BUDGET_RANGES.map(b=>`<option value="${b}">${b}</option>`).join("");
+      fillClosedDaysBox("sf-closed-days");
+      fillHoursSelects("sf");
     }
     function fillWishlistFormOptions(){
       document.getElementById("wl-genre").innerHTML = `<option value="">ジャンル（任意）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("wl-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
       document.getElementById("wl-budget").innerHTML = `<option value="">未設定</option>` + BUDGET_RANGES.map(b=>`<option value="${b}">${b}</option>`).join("");
+      fillClosedDaysBox("wl-closed-days");
+      fillHoursSelects("wl");
+    }
+    // 表示用フォーマット関数（お店カード・行ってみたい店カード・幹事サポートで共通利用）
+    function formatBusinessHours(bh){
+      if(!bh) return "";
+      const blocks = [];
+      if(bh.start1 && bh.end1) blocks.push(`${bh.start1}〜${bh.end1}`);
+      if(bh.start2 && bh.end2) blocks.push(`${bh.start2}〜${bh.end2}`);
+      return blocks.join(" ／ ");
+    }
+    function formatClosedDays(days){
+      if(!days || !days.length) return "";
+      return days.join("・") + "定休";
     }
     // 「行ってみたい店」から昇格して登録するとき、保存成功後に元データを削除するためのID
     let promotingWishId = null;
@@ -1236,8 +1294,13 @@
       document.getElementById("sf-address").value = store?.address || prefill?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
       document.getElementById("sf-budget").value = store?.budget || "";
-      document.getElementById("sf-hours").value = store?.businessHours || "";
-      document.getElementById("sf-closed").value = store?.closedDays || "";
+      const sfClosed = new Set(store?.closedDays || []);
+      document.querySelectorAll('#sf-closed-days input[type=checkbox]').forEach(cb=> cb.checked = sfClosed.has(cb.value));
+      const sfBh = store?.businessHours || {};
+      document.getElementById("sf-hours-start1").value = sfBh.start1 || "";
+      document.getElementById("sf-hours-end1").value = sfBh.end1 || "";
+      document.getElementById("sf-hours-start2").value = sfBh.start2 || "";
+      document.getElementById("sf-hours-end2").value = sfBh.end2 || "";
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
       const linksBox = document.getElementById("sf-links");
       linksBox.innerHTML = "";
@@ -1374,8 +1437,11 @@
         address, scenes,
         taste: Number(document.getElementById("sf-taste").value) || 0,
         budget: document.getElementById("sf-budget").value,
-        businessHours: document.getElementById("sf-hours").value.trim(),
-        closedDays: document.getElementById("sf-closed").value.trim(),
+        businessHours: {
+          start1: document.getElementById("sf-hours-start1").value, end1: document.getElementById("sf-hours-end1").value,
+          start2: document.getElementById("sf-hours-start2").value, end2: document.getElementById("sf-hours-end2").value,
+        },
+        closedDays: [...document.querySelectorAll('#sf-closed-days input[type=checkbox]:checked')].map(cb=>cb.value),
         features: document.getElementById("sf-features").value.trim(),
         links,
         url: links[0]?.url || "", // 旧バージョン互換用（表示側はlinksを優先して使用）
@@ -1750,8 +1816,11 @@
       document.getElementById("wl-memo").value = "";
       document.getElementById("wl-genre").value = "";
       document.getElementById("wl-budget").value = "";
-      document.getElementById("wl-hours").value = "";
-      document.getElementById("wl-closed").value = "";
+      document.querySelectorAll('#wl-closed-days input[type=checkbox]').forEach(cb=> cb.checked = false);
+      document.getElementById("wl-hours-start1").value = "";
+      document.getElementById("wl-hours-end1").value = "";
+      document.getElementById("wl-hours-start2").value = "";
+      document.getElementById("wl-hours-end2").value = "";
       document.getElementById("wl-pref").value = "";
       document.getElementById("wl-area").value = "";
       document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = false);
@@ -1788,8 +1857,13 @@
       document.getElementById("wl-memo").value = item.memo || "";
       document.getElementById("wl-genre").value = item.genre || "";
       document.getElementById("wl-budget").value = item.budget || "";
-      document.getElementById("wl-hours").value = item.businessHours || "";
-      document.getElementById("wl-closed").value = item.closedDays || "";
+      const wlClosed = new Set(item.closedDays || []);
+      document.querySelectorAll('#wl-closed-days input[type=checkbox]').forEach(cb=> cb.checked = wlClosed.has(cb.value));
+      const wlBh = item.businessHours || {};
+      document.getElementById("wl-hours-start1").value = wlBh.start1 || "";
+      document.getElementById("wl-hours-end1").value = wlBh.end1 || "";
+      document.getElementById("wl-hours-start2").value = wlBh.start2 || "";
+      document.getElementById("wl-hours-end2").value = wlBh.end2 || "";
       document.getElementById("wl-pref").value = item.prefecture || "";
       document.getElementById("wl-area").value = item.area || "";
       const selectedWlScenes = new Set(item.scenes || []);
@@ -1848,8 +1922,11 @@
       const memo = document.getElementById("wl-memo").value.trim();
       const genre = document.getElementById("wl-genre").value;
       const budget = document.getElementById("wl-budget").value;
-      const businessHours = document.getElementById("wl-hours").value.trim();
-      const closedDays = document.getElementById("wl-closed").value.trim();
+      const businessHours = {
+        start1: document.getElementById("wl-hours-start1").value, end1: document.getElementById("wl-hours-end1").value,
+        start2: document.getElementById("wl-hours-start2").value, end2: document.getElementById("wl-hours-end2").value,
+      };
+      const closedDays = [...document.querySelectorAll('#wl-closed-days input[type=checkbox]:checked')].map(cb=>cb.value);
       const prefecture = document.getElementById("wl-pref").value.trim();
       const area = document.getElementById("wl-area").value.trim();
       const scenes = [...document.querySelectorAll('#wl-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
@@ -2048,7 +2125,7 @@
         const w = (source === "wishlist" ? allWishItems : allStores).find(x=> x.id === id);
         const link = normalizeLinks(w, source === "wishlist" ? "referenceUrl" : "url", "参考リンク")[0];
         return { id: w.id, source, name: w.name, area: w.area || "", genre: w.genre || "", address: w.address || "",
-          budget: w.budget || "", businessHours: w.businessHours || "",
+          budget: w.budget || "", businessHours: w.businessHours || null,
           linkUrl: link ? link.url : "", linkLabel: link ? link.label : "" };
       });
       const token = generateProposalToken();
@@ -2189,7 +2266,7 @@
             <div class="min-w-0">
               <h3 class="font-bold text-sm truncate">${escapeHtml(item.name)}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}${hasAddressButNoLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
               ${(item.area || item.genre || (userLocation && item.lat && item.lng)) ? `<p class="text-xs text-[var(--ink)]/60">${escapeHtml(item.area)}${item.area && item.genre ? " ／ " : ""}${escapeHtml(item.genre)}${(userLocation && item.lat && item.lng) ? `${(item.area || item.genre) ? " ／ " : ""}<span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng))}</span>` : ""}</p>` : ""}
-              ${(item.budget || item.businessHours || item.closedDays) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[item.budget, item.businessHours, item.closedDays].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
+              ${(item.budget || formatBusinessHours(item.businessHours) || formatClosedDays(item.closedDays)) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[item.budget, formatBusinessHours(item.businessHours), formatClosedDays(item.closedDays)].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
               ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${escapeHtml(item.memo)}</p>` : ""}
               ${(item.scenes||[]).length ? `<div class="flex flex-wrap gap-1 mt-1">${item.scenes.map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>` : ""}
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${escapeHtml(item.address)}</p>` : ""}
