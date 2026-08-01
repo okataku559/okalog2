@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>みんなで決める｜おかログ</title>
+<title>幹事サポート｜おかログ</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -31,7 +31,7 @@
   <header class="bg-[var(--ink)] text-[var(--paper)]">
     <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
       <a href="index.html"><img src="logo.png" alt="おかログ" class="h-10 w-auto rounded-lg"></a>
-      <p class="font-display font-bold text-base">みんなで決める</p>
+      <p class="font-display font-bold text-base">🎉 幹事サポート</p>
     </div>
   </header>
 
@@ -181,8 +181,22 @@
       const storeBox = document.getElementById("store-choices");
       storeBox.innerHTML = "";
       proposal.candidateStores.forEach(s=>{
-        const label = `${s.name}${s.area ? `（${s.area}）` : ""}`;
-        selectableRow(storeBox, "store", s.id, label);
+        const el = document.createElement("div");
+        el.className = "choice-card";
+        el.dataset.value = s.id;
+        el.dataset.group = "store";
+        const mapQuery = s.address ? `${s.name} ${s.address}` : s.name;
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+        el.innerHTML = `
+          <p class="text-sm font-bold">${escapeHtml(s.name)}${s.area ? `<span class="font-normal text-[var(--ink)]/60">（${escapeHtml(s.area)}）</span>` : ""}</p>
+          ${s.address ? `<p class="text-xs text-[var(--ink)]/60 mt-0.5">${escapeHtml(s.address)}</p>` : ""}
+          <a href="${mapUrl}" target="_blank" rel="noopener" class="text-xs text-[var(--wish)] underline underline-offset-2" onclick="event.stopPropagation()">📍 地図で見る</a>
+        `;
+        el.addEventListener("click", ()=>{
+          document.querySelectorAll('.choice-card[data-group="store"]').forEach(c=> c.dataset.selected = "false");
+          el.dataset.selected = "true";
+        });
+        storeBox.appendChild(el);
       });
       const dateBox = document.getElementById("date-choices");
       dateBox.innerHTML = "";
