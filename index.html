@@ -146,6 +146,17 @@
             </select>
           </label>
           <div id="sf-scenes" class="flex flex-wrap gap-1.5"></div>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+              <select id="sf-budget" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm"><option value="">未設定</option></select>
+            </label>
+            <label class="block text-xs font-bold">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+              <input type="text" id="sf-closed" placeholder="例：月曜定休" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
+            </label>
+          </div>
+          <label class="block text-xs font-bold">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+            <input type="text" id="sf-hours" placeholder="例：11:00-14:00, 17:00-23:00" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm">
+          </label>
           <label class="block text-xs font-bold">おすすめポイント <span class="text-[var(--ink)]/40 font-normal">任意</span>（オーナー・編集者のコメント）<textarea id="sf-features" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm" rows="2"></textarea></label>
           <div>
             <p class="text-xs font-bold mb-1">参考リンク <span class="text-[var(--ink)]/40 font-normal">任意</span>（食べログ・ホットペッパー・Instagramなど、複数登録できます）</p>
@@ -239,6 +250,17 @@
           </div>
           <label class="block text-xs font-bold">ジャンル <span class="text-[var(--ink)]/40 font-normal">任意</span>
             <select id="wl-genre" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-xs font-bold">予算目安 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+              <select id="wl-budget" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"><option value="">未設定</option></select>
+            </label>
+            <label class="block text-xs font-bold">定休日 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+              <input type="text" id="wl-closed" placeholder="例：月曜定休" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
+            </label>
+          </div>
+          <label class="block text-xs font-bold">営業時間 <span class="text-[var(--ink)]/40 font-normal">任意</span>
+            <input type="text" id="wl-hours" placeholder="例：11:00-14:00, 17:00-23:00" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm">
           </label>
           <textarea id="wl-memo" rows="2" placeholder="気になる理由・メモ（任意）"
                  class="w-full border border-[var(--line)] rounded px-3 py-1.5 text-sm"></textarea>
@@ -390,7 +412,7 @@
       query, where, orderBy, limit, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { GENRES, SCENES, REGIONS } from "./constants.js";
+    import { GENRES, SCENES, REGIONS, BUDGET_RANGES } from "./constants.js";
     import {
       GOOGLE_MAPS_API_KEY, EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID, EMAILJS_WISHLIST_TEMPLATE_ID, EMAILJS_SHARE_TEMPLATE_ID
@@ -892,6 +914,7 @@
             </div>
             ${currentUser ? `<button data-role="favorite" aria-label="お気に入り" class="shrink-0 text-xl leading-none">${myFavorites.has(`official:${s.id}`) ? "❤️" : "🤍"}</button>` : ""}
           </div>
+          ${(s.budget || s.businessHours || s.closedDays) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[s.budget, s.businessHours, s.closedDays].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
           ${s.features ? `<p class="text-xs mt-2 bg-[var(--paper-dim)] rounded p-2"><span class="font-bold">おすすめポイント：</span>${escapeHtml(s.features)}</p>` : ""}
           <p class="text-xs text-[var(--ink)]/60 mt-2">${escapeHtml(s.address)}</p>
           <div class="flex flex-wrap gap-3 mt-1 text-xs items-center">
@@ -1188,11 +1211,13 @@
       document.getElementById("sf-genre").innerHTML = GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("sf-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
+      document.getElementById("sf-budget").innerHTML = `<option value="">未設定</option>` + BUDGET_RANGES.map(b=>`<option value="${b}">${b}</option>`).join("");
     }
     function fillWishlistFormOptions(){
       document.getElementById("wl-genre").innerHTML = `<option value="">ジャンル（任意）</option>` + GENRES.map(g=>`<option value="${g}">${g}</option>`).join("");
       const sceneBox = document.getElementById("wl-scenes");
       sceneBox.innerHTML = SCENES.map(sc=>`<label class="text-xs border border-[var(--line)] rounded-full px-2 py-1 bg-white"><input type="checkbox" value="${sc}" class="mr-1">${sc}</label>`).join("");
+      document.getElementById("wl-budget").innerHTML = `<option value="">未設定</option>` + BUDGET_RANGES.map(b=>`<option value="${b}">${b}</option>`).join("");
     }
     // 「行ってみたい店」から昇格して登録するとき、保存成功後に元データを削除するためのID
     let promotingWishId = null;
@@ -1210,6 +1235,9 @@
       document.getElementById("sf-area").value = store?.area || prefill?.area || "";
       document.getElementById("sf-address").value = store?.address || prefill?.address || "";
       document.getElementById("sf-taste").value = String(store?.taste || 0);
+      document.getElementById("sf-budget").value = store?.budget || "";
+      document.getElementById("sf-hours").value = store?.businessHours || "";
+      document.getElementById("sf-closed").value = store?.closedDays || "";
       document.getElementById("sf-features").value = store?.features || prefill?.memo || "";
       const linksBox = document.getElementById("sf-links");
       linksBox.innerHTML = "";
@@ -1345,6 +1373,9 @@
         area: document.getElementById("sf-area").value.trim(),
         address, scenes,
         taste: Number(document.getElementById("sf-taste").value) || 0,
+        budget: document.getElementById("sf-budget").value,
+        businessHours: document.getElementById("sf-hours").value.trim(),
+        closedDays: document.getElementById("sf-closed").value.trim(),
         features: document.getElementById("sf-features").value.trim(),
         links,
         url: links[0]?.url || "", // 旧バージョン互換用（表示側はlinksを優先して使用）
@@ -1718,6 +1749,9 @@
       document.getElementById("wl-name").value = "";
       document.getElementById("wl-memo").value = "";
       document.getElementById("wl-genre").value = "";
+      document.getElementById("wl-budget").value = "";
+      document.getElementById("wl-hours").value = "";
+      document.getElementById("wl-closed").value = "";
       document.getElementById("wl-pref").value = "";
       document.getElementById("wl-area").value = "";
       document.querySelectorAll('#wl-scenes input[type=checkbox]').forEach(cb=> cb.checked = false);
@@ -1753,6 +1787,9 @@
       document.getElementById("wl-name").value = item.name || "";
       document.getElementById("wl-memo").value = item.memo || "";
       document.getElementById("wl-genre").value = item.genre || "";
+      document.getElementById("wl-budget").value = item.budget || "";
+      document.getElementById("wl-hours").value = item.businessHours || "";
+      document.getElementById("wl-closed").value = item.closedDays || "";
       document.getElementById("wl-pref").value = item.prefecture || "";
       document.getElementById("wl-area").value = item.area || "";
       const selectedWlScenes = new Set(item.scenes || []);
@@ -1810,6 +1847,9 @@
       const editId = document.getElementById("wl-edit-id").value;
       const memo = document.getElementById("wl-memo").value.trim();
       const genre = document.getElementById("wl-genre").value;
+      const budget = document.getElementById("wl-budget").value;
+      const businessHours = document.getElementById("wl-hours").value.trim();
+      const closedDays = document.getElementById("wl-closed").value.trim();
       const prefecture = document.getElementById("wl-pref").value.trim();
       const area = document.getElementById("wl-area").value.trim();
       const scenes = [...document.querySelectorAll('#wl-scenes input[type=checkbox]:checked')].map(cb=>cb.value);
@@ -1826,13 +1866,13 @@
         let savedItemId = editId || null;
         if(editId){
           await updateDoc(doc(db,"wishlist",editId), {
-            name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
+            name, memo, genre, budget, businessHours, closedDays, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             anonymous, sharedWith, sharedWithEmails: shareEmailsArr,
           });
         }else{
           const newRef = await addDoc(collection(db,"wishlist"), {
-            name, memo, genre, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
+            name, memo, genre, budget, businessHours, closedDays, prefecture, area, scenes, links, referenceUrl: links[0]?.url || "", address,
             lat: geo ? geo.lat : null, lng: geo ? geo.lng : null,
             addedBy: currentUser.uid,
             addedByNickname: currentNickname,
@@ -2008,6 +2048,7 @@
         const w = (source === "wishlist" ? allWishItems : allStores).find(x=> x.id === id);
         const link = normalizeLinks(w, source === "wishlist" ? "referenceUrl" : "url", "参考リンク")[0];
         return { id: w.id, source, name: w.name, area: w.area || "", genre: w.genre || "", address: w.address || "",
+          budget: w.budget || "", businessHours: w.businessHours || "",
           linkUrl: link ? link.url : "", linkLabel: link ? link.label : "" };
       });
       const token = generateProposalToken();
@@ -2148,6 +2189,7 @@
             <div class="min-w-0">
               <h3 class="font-bold text-sm truncate">${escapeHtml(item.name)}${visited ? ' <span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/60 rounded-full px-2 py-0.5 align-middle">訪問済み</span>' : ''}${sharedWithMe ? ' <span class="text-[10px] bg-[var(--wish)] text-white rounded-full px-2 py-0.5 align-middle">あなたに共有</span>' : ''}${hasAddressButNoLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}</h3>
               ${(item.area || item.genre || (userLocation && item.lat && item.lng)) ? `<p class="text-xs text-[var(--ink)]/60">${escapeHtml(item.area)}${item.area && item.genre ? " ／ " : ""}${escapeHtml(item.genre)}${(userLocation && item.lat && item.lng) ? `${(item.area || item.genre) ? " ／ " : ""}<span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, item.lat, item.lng))}</span>` : ""}</p>` : ""}
+              ${(item.budget || item.businessHours || item.closedDays) ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${[item.budget, item.businessHours, item.closedDays].filter(Boolean).map(escapeHtml).join(" ／ ")}</p>` : ""}
               ${item.memo ? `<p class="text-xs text-[var(--ink)]/70 mt-1">${escapeHtml(item.memo)}</p>` : ""}
               ${(item.scenes||[]).length ? `<div class="flex flex-wrap gap-1 mt-1">${item.scenes.map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>` : ""}
               ${item.address ? `<p class="text-xs text-[var(--ink)]/60 mt-1">${escapeHtml(item.address)}</p>` : ""}
