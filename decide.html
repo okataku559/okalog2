@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんなで決める｜おかログ</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#1F2421; --paper:#FBF7EE; --paper-dim:#F1EBDC;
+    --shu:#B23A22; --shu-dark:#8C2C19; --kin:#B8902E; --line:#DDD3BE;
+    --wish:#2B5DA6; --wish-dark:#204A87;
+  }
+  html,body{ background:var(--paper); font-family:"Noto Sans JP",sans-serif; color:var(--ink); }
+  .font-display{ font-family:"Shippori Mincho",serif; }
+  .btn-primary{ background:var(--shu); color:#fff; }
+  .btn-primary:hover{ background:var(--shu-dark); }
+  .btn-wish{ background:var(--wish); color:#fff; }
+  .btn-wish:hover{ background:var(--wish-dark); }
+  .choice-card{ border:1px solid var(--line); border-radius:.75rem; padding:.75rem; cursor:pointer; transition:border-color .15s, background .15s; }
+  .choice-card[data-selected="true"]{ border-color:var(--wish); background:#EEF3FA; }
+  .bar-track{ background:var(--paper-dim); border-radius:9999px; overflow:hidden; height:8px; }
+  .bar-fill{ background:var(--wish); height:100%; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <header class="bg-[var(--ink)] text-[var(--paper)]">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <a href="index.html"><img src="logo.png" alt="おかログ" class="h-10 w-auto rounded-lg"></a>
+      <p class="font-display font-bold text-base">みんなで決める</p>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-2xl w-full mx-auto px-4 py-6 space-y-4">
+    <div id="loading" class="text-center text-sm text-[var(--ink)]/50 py-10">読み込み中…</div>
+    <div id="not-found" class="hidden text-center text-sm text-[var(--ink)]/60 py-10">
+      このページは見つかりませんでした。URLをご確認ください。
+    </div>
+
+    <div id="app" class="hidden space-y-5">
+      <div>
+        <h1 id="pp-title-view" class="font-display font-bold text-xl"></h1>
+        <p id="pp-organizer-view" class="text-xs text-[var(--ink)]/50 mt-1"></p>
+      </div>
+
+      <!-- 決定済み表示 -->
+      <div id="decided-box" class="hidden bg-[var(--kin)]/10 border border-[var(--kin)] rounded-xl p-4 space-y-2">
+        <p class="text-xs font-bold text-[var(--kin)]">✅ 決定しました</p>
+        <p id="decided-store" class="font-bold text-base"></p>
+        <p id="decided-date" class="text-sm"></p>
+        <div id="decided-cost" class="hidden mt-2 pt-2 border-t border-[var(--kin)]/30 text-sm space-y-1"></div>
+      </div>
+
+      <!-- 投票フォーム -->
+      <div id="vote-section" class="space-y-4">
+        <div>
+          <p class="text-sm font-bold mb-2">お店を選んでください</p>
+          <div id="store-choices" class="space-y-2"></div>
+        </div>
+        <div>
+          <p class="text-sm font-bold mb-2">日程を選んでください</p>
+          <div id="date-choices" class="space-y-2"></div>
+        </div>
+        <label class="block text-xs font-bold">お名前 <span class="text-[var(--ink)]/40 font-normal">任意（誰が投票したか分かりやすくなります）</span>
+          <input id="voter-name" type="text" placeholder="例：たく" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm mt-1">
+        </label>
+        <p id="vote-status" class="text-xs text-[var(--shu)]"></p>
+        <button id="btn-vote-submit" class="btn-wish rounded-full px-5 py-2 text-sm font-bold">この内容で投票する</button>
+      </div>
+
+      <div id="voted-thanks" class="hidden bg-white border border-[var(--line)] rounded-xl p-4 text-sm">
+        投票ありがとうございます！内容はいつでも下のフォームから変更できます。
+      </div>
+
+      <!-- 現在の集計（誰でも見れる） -->
+      <div class="bg-white border border-[var(--line)] rounded-xl p-4 space-y-3">
+        <p class="text-sm font-bold">今の投票状況（<span id="vote-count">0</span>件）</p>
+        <div id="tally-stores" class="space-y-2"></div>
+        <div id="tally-dates" class="space-y-2 pt-2 border-t border-[var(--line)]"></div>
+      </div>
+
+      <!-- 幹事専用パネル（tokenが一致する時だけ表示） -->
+      <div id="organizer-panel" class="hidden bg-white border border-[var(--wish)] rounded-xl p-4 space-y-4">
+        <p class="text-sm font-bold text-[var(--wish)]">🔑 幹事用パネル</p>
+
+        <div id="decide-controls" class="space-y-2">
+          <p class="text-xs font-bold">決定するお店・日程を選んで確定してください</p>
+          <select id="decide-store-select" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          <select id="decide-date-select" class="w-full border border-[var(--line)] rounded px-2 py-1.5 text-sm"></select>
+          <button id="btn-decide" class="btn-primary rounded-full px-4 py-1.5 text-sm">この内容で決定する</button>
+          <button id="btn-reopen" class="hidden text-xs underline underline-offset-2 text-[var(--ink)]/60">決定を取り消す</button>
+        </div>
+
+        <div class="pt-3 border-t border-[var(--line)] space-y-2">
+          <p class="text-xs font-bold">割り勘計算</p>
+          <div class="flex gap-2">
+            <label class="flex-1 text-xs">1人あたりの単価（円）
+              <input id="cost-price" type="number" min="0" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm mt-0.5">
+            </label>
+            <label class="flex-1 text-xs">人数
+              <input id="cost-headcount" type="number" min="1" class="w-full border border-[var(--line)] rounded px-2 py-1 text-sm mt-0.5">
+            </label>
+          </div>
+          <div>
+            <p class="text-[10px] text-[var(--ink)]/60 mb-1">個別調整（任意）：名前・割合(%)or固定金額orfreeを指定</p>
+            <div id="cost-overrides" class="space-y-1"></div>
+            <button type="button" id="cost-override-add" class="text-xs underline underline-offset-2 text-[var(--wish)] mt-1">＋ 個別調整を追加</button>
+          </div>
+          <button id="btn-cost-calc" class="btn-wish rounded-full px-4 py-1.5 text-sm">計算して保存する</button>
+          <div id="cost-result" class="hidden bg-[var(--paper-dim)] rounded p-3 text-sm space-y-1"></div>
+          <button type="button" id="cost-copy" class="hidden text-xs underline underline-offset-2 text-[var(--wish)]">結果をコピー（LINE用）</button>
+        </div>
+      </div>
+
+      <!-- グロース導線：投票後・毎回下部に表示 -->
+      <div id="growth-card" class="bg-white border border-[var(--line)] rounded-xl p-4 space-y-2">
+        <p class="text-sm font-bold">おかログって？</p>
+        <p class="text-xs text-[var(--ink)]/60">「本当に行ってよかった店」だけを載せる、信頼特化型のグルメ検索サイトです。</p>
+        <div id="growth-samples" class="space-y-1 text-xs"></div>
+        <a href="index.html" class="inline-block btn-primary rounded-full px-4 py-1.5 text-xs font-bold mt-1">気になる方はこちら</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center text-xs text-[var(--ink)]/40 py-6">
+    <a href="index.html" class="underline underline-offset-2">おかログ トップへ</a>
+  </footer>
+
+  <script type="module">
+    import { db } from "./firebase-init.js";
+    import {
+      collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, query, limit
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    function escapeHtml(str){
+      return String(str ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    const params = new URLSearchParams(location.search);
+    const proposalId = params.get("id");
+    const urlToken = params.get("token");
+
+    if(!proposalId){
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("not-found").classList.remove("hidden");
+      throw new Error("no id");
+    }
+
+    // 投票者を識別するための、このブラウザだけのランダムID（ログイン不要のため）
+    const VOTER_KEY = "okalog_voter_id";
+    let voterId = localStorage.getItem(VOTER_KEY);
+    if(!voterId){
+      voterId = "v_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(VOTER_KEY, voterId);
+    }
+
+    let proposal = null;
+    let isOrganizer = false;
+    let votes = [];
+
+    function selectableRow(container, name, value, label){
+      const el = document.createElement("div");
+      el.className = "choice-card";
+      el.dataset.value = value;
+      el.dataset.group = name;
+      el.innerHTML = `<p class="text-sm font-bold">${escapeHtml(label)}</p>`;
+      el.addEventListener("click", ()=>{
+        document.querySelectorAll(`.choice-card[data-group="${name}"]`).forEach(c=> c.dataset.selected = "false");
+        el.dataset.selected = "true";
+      });
+      container.appendChild(el);
+    }
+
+    function renderChoices(){
+      const storeBox = document.getElementById("store-choices");
+      storeBox.innerHTML = "";
+      proposal.candidateStores.forEach(s=>{
+        const label = `${s.name}${s.area ? `（${s.area}）` : ""}`;
+        selectableRow(storeBox, "store", s.id, label);
+      });
+      const dateBox = document.getElementById("date-choices");
+      dateBox.innerHTML = "";
+      proposal.candidateDates.forEach(d=> selectableRow(dateBox, "date", d, d));
+    }
+
+    async function loadExistingVote(){
+      const snap = await getDoc(doc(db, "proposals", proposalId, "votes", voterId));
+      if(snap.exists()){
+        const v = snap.data();
+        if(v.storeId){
+          const el = document.querySelector(`.choice-card[data-group="store"][data-value="${CSS.escape(v.storeId)}"]`);
+          if(el) el.dataset.selected = "true";
+        }
+        if(v.dateChoice){
+          const el = document.querySelector(`.choice-card[data-group="date"][data-value="${CSS.escape(v.dateChoice)}"]`);
+          if(el) el.dataset.selected = "true";
+        }
+        document.getElementById("voter-name").value = v.voterName || "";
+        document.getElementById("voted-thanks").classList.remove("hidden");
+      }
+    }
+
+    document.getElementById("btn-vote-submit").addEventListener("click", async ()=>{
+      const statusEl = document.getElementById("vote-status");
+      const storeEl = document.querySelector('.choice-card[data-group="store"][data-selected="true"]');
+      const dateEl = document.querySelector('.choice-card[data-group="date"][data-selected="true"]');
+      if(!storeEl || !dateEl){ statusEl.textContent = "お店と日程、どちらも選んでください。"; return; }
+      statusEl.textContent = "";
+      try{
+        await setDoc(doc(db, "proposals", proposalId, "votes", voterId), {
+          voterName: document.getElementById("voter-name").value.trim(),
+          storeId: storeEl.dataset.value,
+          dateChoice: dateEl.dataset.value,
+          createdAt: new Date().toISOString(),
+        });
+        document.getElementById("voted-thanks").classList.remove("hidden");
+      }catch(e){
+        console.error(e);
+        statusEl.textContent = `投票に失敗しました：${e.code || e.message}`;
+      }
+    });
+
+    function renderTally(){
+      document.getElementById("vote-count").textContent = String(votes.length);
+      const storeCounts = {};
+      const dateCounts = {};
+      votes.forEach(v=>{
+        if(v.storeId) storeCounts[v.storeId] = (storeCounts[v.storeId]||0) + 1;
+        if(v.dateChoice) dateCounts[v.dateChoice] = (dateCounts[v.dateChoice]||0) + 1;
+      });
+      const max = Math.max(1, votes.length);
+
+      const storeBox = document.getElementById("tally-stores");
+      storeBox.innerHTML = proposal.candidateStores.map(s=>{
+        const c = storeCounts[s.id] || 0;
+        const pct = Math.round((c / max) * 100);
+        return `<div>
+          <div class="flex justify-between text-xs mb-0.5"><span>${escapeHtml(s.name)}</span><span>${c}票</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join("");
+
+      const dateBox = document.getElementById("tally-dates");
+      dateBox.innerHTML = proposal.candidateDates.map(d=>{
+        const c = dateCounts[d] || 0;
+        const pct = Math.round((c / max) * 100);
+        return `<div>
+          <div class="flex justify-between text-xs mb-0.5"><span>${escapeHtml(d)}</span><span>${c}票</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join("");
+
+      // 幹事パネルの選択肢も更新（今の一番人気をデフォルト選択）
+      if(isOrganizer){
+        const storeSel = document.getElementById("decide-store-select");
+        storeSel.innerHTML = proposal.candidateStores.map(s=> `<option value="${s.id}">${escapeHtml(s.name)}（${storeCounts[s.id]||0}票）</option>`).join("");
+        const dateSel = document.getElementById("decide-date-select");
+        dateSel.innerHTML = proposal.candidateDates.map(d=> `<option value="${escapeHtml(d)}">${escapeHtml(d)}（${dateCounts[d]||0}票）</option>`).join("");
+      }
+    }
+
+    function renderDecided(){
+      const box = document.getElementById("decided-box");
+      const voteSection = document.getElementById("vote-section");
+      if(proposal.status !== "closed"){
+        box.classList.add("hidden");
+        voteSection.classList.remove("hidden");
+        document.getElementById("btn-reopen")?.classList.add("hidden");
+        return;
+      }
+      box.classList.remove("hidden");
+      voteSection.classList.add("hidden");
+      const store = proposal.candidateStores.find(s=> s.id === proposal.decidedStoreId);
+      document.getElementById("decided-store").textContent = store ? store.name : "";
+      document.getElementById("decided-date").textContent = proposal.decidedDate || "";
+      const costBox = document.getElementById("decided-cost");
+      if(proposal.costConfig && proposal.costConfig.perPersonPrice){
+        costBox.classList.remove("hidden");
+        costBox.innerHTML = buildCostBreakdown(proposal.costConfig).map(r=>
+          `<p>${escapeHtml(r.name)}：${r.amount.toLocaleString()}円${r.note ? `（${r.note}）` : ""}</p>`
+        ).join("");
+      }else{
+        costBox.classList.add("hidden");
+      }
+      if(isOrganizer) document.getElementById("btn-reopen").classList.remove("hidden");
+    }
+
+    // --- 幹事：決定 ---
+    document.getElementById("btn-decide").addEventListener("click", async ()=>{
+      const storeId = document.getElementById("decide-store-select").value;
+      const dateChoice = document.getElementById("decide-date-select").value;
+      if(!storeId || !dateChoice) return;
+      await updateDoc(doc(db, "proposals", proposalId), {
+        status: "closed", decidedStoreId: storeId, decidedDate: dateChoice,
+      });
+    });
+    document.getElementById("btn-reopen").addEventListener("click", async ()=>{
+      await updateDoc(doc(db, "proposals", proposalId), { status: "open" });
+    });
+
+    // --- 幹事：割り勘計算 ---
+    function addCostOverrideRow(name="", type="ratio", value=""){
+      const row = document.createElement("div");
+      row.className = "flex gap-1 items-center";
+      row.innerHTML = `
+        <input type="text" placeholder="名前" value="${escapeHtml(name)}" class="w-20 border border-[var(--line)] rounded px-1 py-1 text-xs" data-role="ov-name">
+        <select class="border border-[var(--line)] rounded px-1 py-1 text-xs" data-role="ov-type">
+          <option value="ratio"${type==="ratio"?" selected":""}>割合(%)</option>
+          <option value="fixed"${type==="fixed"?" selected":""}>固定金額</option>
+          <option value="free"${type==="free"?" selected":""}>無料</option>
+        </select>
+        <input type="number" placeholder="値" value="${escapeHtml(value)}" class="w-16 border border-[var(--line)] rounded px-1 py-1 text-xs" data-role="ov-value">
+        <button type="button" class="text-xs text-[var(--shu)] px-1" data-role="ov-remove">✕</button>
+      `;
+      row.querySelector('[data-role="ov-remove"]').addEventListener("click", ()=> row.remove());
+      document.getElementById("cost-overrides").appendChild(row);
+    }
+    document.getElementById("cost-override-add").addEventListener("click", ()=> addCostOverrideRow());
+
+    function currentCostConfig(){
+      const perPersonPrice = Number(document.getElementById("cost-price").value) || 0;
+      const headcount = Number(document.getElementById("cost-headcount").value) || 0;
+      const overrides = [...document.querySelectorAll("#cost-overrides > div")].map(row=>({
+        name: row.querySelector('[data-role="ov-name"]').value.trim(),
+        type: row.querySelector('[data-role="ov-type"]').value,
+        value: Number(row.querySelector('[data-role="ov-value"]').value) || 0,
+      })).filter(o=> o.name);
+      return { perPersonPrice, headcount, overrides };
+    }
+
+    // 総額 = 単価×人数。個別調整の分を差し引き、残りを調整なしの人数で均等割り
+    function buildCostBreakdown(cfg){
+      const total = cfg.perPersonPrice * cfg.headcount;
+      const overrideNames = new Set(cfg.overrides.map(o=> o.name));
+      let overrideTotal = 0;
+      const results = cfg.overrides.map(o=>{
+        let amount = 0;
+        let note = "";
+        if(o.type === "free"){ amount = 0; note = "無料"; }
+        else if(o.type === "fixed"){ amount = o.value; note = "固定"; }
+        else{ amount = Math.round(cfg.perPersonPrice * (o.value/100)); note = `${o.value}%`; }
+        overrideTotal += amount;
+        return { name: o.name, amount, note };
+      });
+      const remainingHeadcount = Math.max(0, cfg.headcount - overrideNames.size);
+      const remainingTotal = Math.max(0, total - overrideTotal);
+      const perRemaining = remainingHeadcount > 0 ? Math.round(remainingTotal / remainingHeadcount) : 0;
+      for(let i=0;i<remainingHeadcount;i++){
+        results.push({ name: `参加者${i+1}`, amount: perRemaining, note: "" });
+      }
+      return results;
+    }
+
+    document.getElementById("btn-cost-calc").addEventListener("click", async ()=>{
+      const cfg = currentCostConfig();
+      const breakdown = buildCostBreakdown(cfg);
+      const resultBox = document.getElementById("cost-result");
+      resultBox.classList.remove("hidden");
+      resultBox.innerHTML = breakdown.map(r=> `<p>${escapeHtml(r.name)}：${r.amount.toLocaleString()}円${r.note ? `（${r.note}）` : ""}</p>`).join("");
+      const copyBtn = document.getElementById("cost-copy");
+      copyBtn.classList.remove("hidden");
+      copyBtn.onclick = async ()=>{
+        const text = breakdown.map(r=> `${r.name}：${r.amount.toLocaleString()}円${r.note ? `（${r.note}）` : ""}`).join("\n");
+        await navigator.clipboard.writeText(text);
+        alert("コピーしました。");
+      };
+      try{
+        await updateDoc(doc(db, "proposals", proposalId), { costConfig: cfg });
+      }catch(e){ console.error(e); }
+    });
+
+    // --- グロース導線：評価の高いお店を数件表示 ---
+    async function renderGrowthSamples(){
+      try{
+        const snap = await getDocs(query(collection(db,"restaurants"), limit(20)));
+        const stores = snap.docs.map(d=> d.data()).filter(s=> (s.taste||0) >= 4);
+        const picked = stores.sort(()=> Math.random()-0.5).slice(0,3);
+        document.getElementById("growth-samples").innerHTML = picked.map(s=>
+          `<p>・${escapeHtml(s.name)}${s.area ? `（${escapeHtml(s.area)}）` : ""}</p>`
+        ).join("") || "";
+      }catch(e){ console.error(e); }
+    }
+
+    // --- 初期化 ---
+    async function init(){
+      const snap = await getDoc(doc(db, "proposals", proposalId));
+      if(!snap.exists()){
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("not-found").classList.remove("hidden");
+        return;
+      }
+      proposal = snap.data();
+      isOrganizer = !!urlToken && urlToken === proposal.organizerToken;
+
+      document.getElementById("pp-title-view").textContent = proposal.title || "どこ行くか決めよう";
+      document.getElementById("pp-organizer-view").textContent = `幹事：${proposal.organizerNickname || "名無しさん"}さん`;
+
+      renderChoices();
+      await loadExistingVote();
+      if(isOrganizer){
+        document.getElementById("organizer-panel").classList.remove("hidden");
+        if(proposal.costConfig){
+          document.getElementById("cost-price").value = proposal.costConfig.perPersonPrice || "";
+          document.getElementById("cost-headcount").value = proposal.costConfig.headcount || "";
+          (proposal.costConfig.overrides || []).forEach(o=> addCostOverrideRow(o.name, o.type, o.value));
+        }
+      }
+      renderDecided();
+      renderGrowthSamples();
+
+      onSnapshot(doc(db, "proposals", proposalId), (docSnap)=>{
+        if(!docSnap.exists()) return;
+        proposal = docSnap.data();
+        renderDecided();
+        renderTally();
+      });
+      onSnapshot(collection(db, "proposals", proposalId, "votes"), (snap)=>{
+        votes = snap.docs.map(d=> d.data());
+        renderTally();
+      });
+
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+    }
+    init();
+  </script>
+</body>
+</html>
