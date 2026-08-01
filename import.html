@@ -36,7 +36,7 @@
     <div>
       <label class="text-sm font-bold block mb-1">① CSVファイルを選択して取り込む</label>
       <input type="file" id="csv-file" accept=".csv" class="text-sm">
-      <p class="text-xs text-gray-500 mt-1">列の順番：name, genre, prefecture, city, area, address, taste, scenes, features, url（scenesは「;」区切り）</p>
+      <p class="text-xs text-gray-500 mt-1">列の順番：name, genre, prefecture, city, area, address, taste, scenes, features, url, budget, businessHours, closedDays（scenesは「;」区切り）</p>
     </div>
     <button id="btn-import" class="bg-[#B23A22] text-white text-sm rounded-full px-4 py-2 disabled:opacity-40" disabled>② Firestoreに取り込む</button>
     <label class="flex items-start gap-2 text-xs text-[#B23A22] bg-[#FBEDE9] border border-[#B23A22]/30 rounded p-2">
@@ -203,6 +203,7 @@
               taste: Number(row.taste) || 0,
               scenes: (row.scenes||"").split(";").map(s=>s.trim()).filter(Boolean),
               features:(row.features||"").trim(), url:(row.url||"").trim(),
+              budget:(row.budget||"").trim(), businessHours:(row.businessHours||"").trim(), closedDays:(row.closedDays||"").trim(),
               lat: geo.ok?geo.lat:null, lng: geo.ok?geo.lng:null,
               deleteRequested:false, curationNo:curationNo++, updatedAt:new Date().toISOString(),
             };
@@ -226,6 +227,7 @@
         name:s.name||"", genre:s.genre||"", prefecture:s.prefecture||"", city:s.city||"",
         area:s.area||"", address:s.address||"", taste:s.taste||0,
         scenes:(s.scenes||[]).join(";"), features:s.features||"", url:s.url||"",
+        budget:s.budget||"", businessHours:s.businessHours||"", closedDays:s.closedDays||"",
       };
     });
     const csv = Papa.unparse(rows);
