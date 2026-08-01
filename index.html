@@ -192,35 +192,41 @@
         </div>
         <button type="button" id="btn-open-propose-official" class="btn-wish rounded-full px-4 py-1.5 text-xs font-bold shrink-0">はじめる</button>
       </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <select id="f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-        <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
-               class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
-        <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
-        <button type="button" id="f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
-        <select id="f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
-          <option value="0.5">0.5km</option>
-          <option value="1">1km</option>
-          <option value="3" selected>3km</option>
-          <option value="5">5km</option>
-          <option value="10">10km</option>
-        </select>
-        <label id="f-favorites-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
-          <input type="checkbox" id="f-favorites-only"> ❤ お気に入りのみ
-        </label>
-        <label id="f-missing-location-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
-          <input type="checkbox" id="f-missing-location"> ⚠ 地図位置未設定のみ
-        </label>
-        <label id="f-missing-data-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
-          <input type="checkbox" id="f-missing-data"> ⚠ データ不備のみ
-        </label>
-                <label id="f-duplicate-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
-          <input type="checkbox" id="f-duplicate-only"> ⚠ 重複候補のみ
-        </label>
-      </div>
+      <details id="official-filter-details" open class="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+        <summary class="cursor-pointer select-none px-3 py-2 flex items-center justify-between gap-2">
+          <span class="font-bold text-sm">🔍 検索・絞り込み</span>
+          <span class="text-[var(--ink)]/40 text-xs">タップで開閉 ▾</span>
+        </summary>
+        <div class="flex flex-wrap gap-2 items-center px-3 pb-3 pt-1 border-t border-[var(--line)]">
+          <select id="f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <select id="f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+          <input id="f-keyword" type="text" placeholder="店名・特徴で検索"
+                 class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
+          <button id="btn-clear" class="text-xs text-[var(--ink)]/60 underline underline-offset-2 shrink-0">条件をクリア</button>
+          <button type="button" id="f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
+          <select id="f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
+            <option value="0.5">0.5km</option>
+            <option value="1">1km</option>
+            <option value="3" selected>3km</option>
+            <option value="5">5km</option>
+            <option value="10">10km</option>
+          </select>
+          <label id="f-favorites-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
+            <input type="checkbox" id="f-favorites-only"> ❤ お気に入りのみ
+          </label>
+          <label id="f-missing-location-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
+            <input type="checkbox" id="f-missing-location"> ⚠ 地図位置未設定のみ
+          </label>
+          <label id="f-missing-data-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
+            <input type="checkbox" id="f-missing-data"> ⚠ データ不備のみ
+          </label>
+          <label id="f-duplicate-row" class="hidden items-center gap-1 text-xs bg-white border border-[var(--kin)] text-[var(--kin)] rounded-full px-3 py-1.5 shrink-0">
+            <input type="checkbox" id="f-duplicate-only"> ⚠ 重複候補のみ
+          </label>
+        </div>
+      </details>
     </div>
   </section>
 
@@ -334,37 +340,45 @@
           <button type="button" id="btn-open-propose" class="btn-wish rounded-full px-4 py-1.5 text-xs font-bold shrink-0">はじめる</button>
         </div>
 
-        <div class="flex flex-wrap gap-2">
-          <select id="wl-f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-          <select id="wl-f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-          <select id="wl-f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-          <select id="wl-f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
-          <input id="wl-f-keyword" type="text" placeholder="店名・メモで検索"
-                 class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <div class="flex gap-1.5" id="filter-mine">
-            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
-            <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
-            <button data-value="shared" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分に共有された店</button>
+        <details id="wishlist-filter-details" open class="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+          <summary class="cursor-pointer select-none px-3 py-2 flex items-center justify-between gap-2">
+            <span class="font-bold text-sm">🔍 検索・絞り込み</span>
+            <span class="text-[var(--ink)]/40 text-xs">タップで開閉 ▾</span>
+          </summary>
+          <div class="px-3 pb-3 pt-1 border-t border-[var(--line)] space-y-3">
+            <div class="flex flex-wrap gap-2">
+              <select id="wl-f-pref" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+              <select id="wl-f-area" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+              <select id="wl-f-genre" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+              <select id="wl-f-scene" class="border border-[var(--line)] rounded-full px-3 py-1.5 text-sm bg-white"></select>
+              <input id="wl-f-keyword" type="text" placeholder="店名・メモで検索"
+                     class="flex-1 min-w-[140px] border border-[var(--line)] rounded-full px-4 py-1.5 text-sm bg-white">
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <div class="flex gap-1.5" id="filter-mine">
+                <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+                <button data-value="mine" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分が登録した店</button>
+                <button data-value="shared" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">自分に共有された店</button>
+              </div>
+              <div class="flex gap-1.5" id="filter-status">
+                <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
+                <button data-value="unvisited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">未訪問</button>
+                <button data-value="visited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">訪問済み</button>
+              </div>
+              <label class="flex items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
+                <input type="checkbox" id="wl-f-favorites-only"> ❤ お気に入りのみ
+              </label>
+              <button type="button" id="wl-f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
+              <select id="wl-f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
+                <option value="0.5">0.5km</option>
+                <option value="1">1km</option>
+                <option value="3" selected>3km</option>
+                <option value="5">5km</option>
+                <option value="10">10km</option>
+              </select>
+            </div>
           </div>
-          <div class="flex gap-1.5" id="filter-status">
-            <button data-value="all" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white" data-active="true">すべて</button>
-            <button data-value="unvisited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">未訪問</button>
-            <button data-value="visited" class="wl-tab text-xs border border-[var(--line)] rounded-full px-3 py-1 bg-white">訪問済み</button>
-          </div>
-          <label class="flex items-center gap-1 text-xs bg-white border border-[var(--shu)] text-[var(--shu)] rounded-full px-3 py-1.5 shrink-0">
-            <input type="checkbox" id="wl-f-favorites-only"> ❤ お気に入りのみ
-          </label>
-          <button type="button" id="wl-f-near-me" class="near-me-chip items-center gap-1 text-xs border rounded-full px-3 py-1.5 shrink-0" data-active="false">📍 現在地から3km以内</button>
-          <select id="wl-f-near-me-radius" class="near-me-radius text-xs border border-[var(--line)] rounded-full px-2 py-1.5 bg-white shrink-0" aria-label="現在地からの距離">
-            <option value="0.5">0.5km</option>
-            <option value="1">1km</option>
-            <option value="3" selected>3km</option>
-            <option value="5">5km</option>
-            <option value="10">10km</option>
-          </select>
-        </div>
+        </details>
       </div>
     </div>
   </section>
