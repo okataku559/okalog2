@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>おかログ｜本当に行って良かったお店だけ。</title>
+<meta name="description" content="「本当に行って良かった店」だけを載せる、信頼特化型のグルメ検索サイト。友達との行き先決めもサクッとサポートします。">
+<meta property="og:title" content="おかログ｜本当に行って良かったお店だけ。">
+<meta property="og:description" content="「本当に行って良かった店」だけを載せる、信頼特化型のグルメ検索サイトです。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://okalog2.vercel.app/logo.png">
+<meta property="og:url" content="https://okalog2.vercel.app/">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-512.png">
@@ -933,13 +940,14 @@
         const missingFields = getMissingFields(s);
         const hasMissingData = missingFields.length > 0;
                 const dupCandidate = isOwner ? findDuplicateCandidate(s) : null;
+        const trendingBadge = trendingStoreIds.has(s.id) ? ' <span class="text-[10px] text-white bg-[var(--wish)] rounded-full px-2 py-0.5 align-middle">🔥注目</span>' : '';
         const card = document.createElement("article");
         card.className = "store-card bg-white border border-[var(--line)] rounded-xl p-3";
         card.dataset.id = s.id;
         card.innerHTML = `
           <div class="flex items-start gap-3 cursor-pointer" data-role="focus">
             <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-base truncate">${escapeHtml(s.name)}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}${dupCandidate ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ 重複候補あり（${escapeHtml(dupCandidate.name)}と近い）</span>` : ''}</h3>
+              <h3 class="font-bold text-base truncate">${escapeHtml(s.name)}${trendingBadge}${deleteBadge}${!hasLocation ? ' <span class="text-[10px] text-white bg-[var(--shu)] rounded-full px-2 py-0.5 align-middle">⚠ 地図位置未設定</span>' : ''}${hasMissingData && isOwner ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ データ不備（${missingFields.join("・")}未設定）</span>` : ''}${dupCandidate ? ` <span class="text-[10px] text-white bg-[var(--kin)] rounded-full px-2 py-0.5 align-middle">⚠ 重複候補あり（${escapeHtml(dupCandidate.name)}と近い）</span>` : ''}</h3>
               <p class="text-xs text-[var(--ink)]/60">${escapeHtml(s.area) || "エリア未設定"} ／ ${escapeHtml(s.genre) || "ジャンル未設定"}${(userLocation && s.lat && s.lng) ? ` ／ <span class="text-[var(--wish)]">${formatDistance(haversineKm(userLocation.lat, userLocation.lng, s.lat, s.lng))}</span>` : ""}</p>
               <p class="text-[var(--kin)] text-sm">${starString(s.taste||0)}</p>
               <div class="flex flex-wrap gap-1 mt-1">${(s.scenes||[]).map(sc=>`<span class="text-[10px] bg-[var(--paper-dim)] text-[var(--ink)]/70 rounded-full px-2 py-0.5">${sc}</span>`).join("")}</div>
@@ -2440,6 +2448,7 @@
       geocoder = new google.maps.Geocoder();
       renderUserLocationMarker();
       loadStoresAndRefresh(true);
+      loadTrendingStores();
       setupPlaceAutocomplete("sf");
       setupPlaceAutocomplete("wl");
     };
@@ -2532,6 +2541,24 @@
         markers[s.id] = marker;
       });
     }
+    // 注目店（直近30日で口コミが2件以上ついた店）の判定用
+    let trendingStoreIds = new Set();
+    async function loadTrendingStores(){
+      try{
+        const snap = await getDocs(collection(db,"reviews"));
+        const cutoff = Date.now() - 30*24*60*60*1000;
+        const counts = {};
+        snap.docs.forEach(d=>{
+          const r = d.data();
+          const t = new Date(r.createdAt).getTime();
+          if(!r.restaurantId || isNaN(t) || t < cutoff) return;
+          counts[r.restaurantId] = (counts[r.restaurantId]||0) + 1;
+        });
+        trendingStoreIds = new Set(Object.keys(counts).filter(id=> counts[id] >= 2));
+        if(viewMode === "official") applyFilters();
+      }catch(e){ console.error(e); }
+    }
+
     async function loadStoresAndRefresh(first){
       const snap = await getDocs(collection(db,"restaurants"));
       allStores = snap.docs.map(d=>({id:d.id, ...d.data()}));
