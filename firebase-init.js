@@ -62,8 +62,17 @@ export const EMAILJS_SHARE_TEMPLATE_ID = "ここに自分のEmailJS Template ID�
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAnalytics, isSupported as isAnalyticsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// アクセス解析（本番のみmeasurementIdを設定済み。未対応環境やstagingではnullのまま）
+export let analytics = null;
+if (firebaseConfig.measurementId) {
+  isAnalyticsSupported().then((supported) => {
+    if (supported) analytics = getAnalytics(app);
+  });
+}
