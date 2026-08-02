@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>幹事サポート｜おかログ</title>
+<meta name="description" content="お店・日程をみんなに投票してもらって、サクッと決めよう。「本当に行ってよかった店」だけを載せる、おかログの幹事サポート機能です。">
+<meta property="og:title" content="幹事サポート｜おかログ">
+<meta property="og:description" content="お店・日程をみんなに投票してもらって、サクッと決めよう。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://okalog2.vercel.app/logo.png">
+<meta property="og:url" content="https://okalog2.vercel.app/decide.html">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -121,17 +128,18 @@
         <p class="text-sm font-bold">おかログって？</p>
         <p class="text-xs text-[var(--ink)]/60">「本当に行ってよかった店」だけを載せる、信頼特化型のグルメ検索サイトです。</p>
         <div id="growth-samples" class="space-y-1 text-xs"></div>
-        <a href="index.html" class="inline-block btn-primary rounded-full px-4 py-1.5 text-xs font-bold mt-1">気になる方はこちら</a>
+        <a id="growth-cta-link" href="index.html" class="inline-block btn-primary rounded-full px-4 py-1.5 text-xs font-bold mt-1">気になる方はこちら</a>
       </div>
     </div>
   </main>
 
   <footer class="text-center text-xs text-[var(--ink)]/40 py-6">
-    <a href="index.html" class="underline underline-offset-2">おかログ トップへ</a>
+    <a id="footer-home-link" href="index.html" class="underline underline-offset-2">おかログ トップへ</a>
   </footer>
 
   <script type="module">
-    import { db } from "./firebase-init.js";
+    import { db, analytics } from "./firebase-init.js";
+    import { logEvent } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
     import {
       collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, query, limit
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -436,6 +444,12 @@
       }
       renderDecided();
       renderGrowthSamples();
+      document.getElementById("growth-cta-link")?.addEventListener("click", ()=>{
+        if(analytics) logEvent(analytics, "growth_cta_click", { source: "growth_card" });
+      });
+      document.getElementById("footer-home-link")?.addEventListener("click", ()=>{
+        if(analytics) logEvent(analytics, "growth_cta_click", { source: "footer" });
+      });
 
       onSnapshot(doc(db, "proposals", proposalId), (docSnap)=>{
         if(!docSnap.exists()) return;
